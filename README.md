@@ -7,6 +7,30 @@
 
 Transform your content creation workflow with AI-powered tools that let you write blog posts from simple ideas, generate stunning feature images, and manage your Ghost CMS blog - all from Claude Desktop!
 
+## 🏗️ System Architecture
+
+This is a **two-component system** that requires both parts to function:
+
+```
+Claude Desktop → Content Creation MCP → Ghost Blog Smart API → Ghost CMS
+                 (This Repository)      (Required Backend API)
+```
+
+### 📦 Required Components
+
+1. **Ghost Blog Smart API** (Backend - Must Deploy First)
+   - GitHub: [https://github.com/preangelleo/ghost-blog-smart](https://github.com/preangelleo/ghost-blog-smart)
+   - Provides REST API for Ghost CMS management
+   - Handles AI content generation (Google Gemini)
+   - Manages image generation (Replicate Flux & Google Imagen)
+   - Required for all MCP server functionality
+
+2. **Content Creation MCP Server** (This Repository)
+   - Provides MCP protocol interface for Claude Desktop
+   - Handles GitHub OAuth authentication
+   - Maps MCP tools to Ghost Blog Smart API endpoints
+   - Manages secure user sessions
+
 ## ✨ Features
 
 ### 🤖 AI-Powered Content Creation
@@ -52,15 +76,57 @@ Transform your content creation workflow with AI-powered tools that let you writ
 
 ## 📋 Prerequisites
 
-- **Node.js 18+** installed
-- **Cloudflare account** (free tier works)
-- **GitHub account** for OAuth
-- **Ghost CMS** instance with Admin API access
-- **Ghost Blog Smart API** deployed (see [ghost-blog-smart](https://github.com/preangelleo/ghost-blog-smart))
+### Required Services
+
+1. **Ghost CMS Instance**
+   - Your Ghost blog with Admin API access
+   - Admin API key and URL
+
+2. **Ghost Blog Smart API** ⚠️ **MUST DEPLOY FIRST**
+   - GitHub: [https://github.com/preangelleo/ghost-blog-smart](https://github.com/preangelleo/ghost-blog-smart)
+   - Deployment options:
+     - 🐳 **Docker** (Recommended): `docker run -p 5000:5000 betashow/ghost-blog-smart-api`
+     - 🐍 **Python Package**: `pip install ghost-blog-smart`
+     - 🌐 **Local Development**: Clone and run with Flask
+   - Required environment variables for Ghost Blog Smart:
+     ```bash
+     GHOST_ADMIN_API_KEY=your_ghost_admin_key
+     GHOST_API_URL=https://your-blog.com
+     GEMINI_API_KEY=your_gemini_key  # For AI content
+     REPLICATE_API_TOKEN=your_replicate_token  # For image generation
+     ```
+
+3. **Development Environment**
+   - **Node.js 18+** installed
+   - **Cloudflare account** (free tier works)
+   - **GitHub account** for OAuth authentication
 
 ## 🚀 Quick Start
 
-### 1. Clone and Setup
+### Step 1: Deploy Ghost Blog Smart API (Backend)
+
+First, deploy the Ghost Blog Smart API which handles all Ghost CMS operations:
+
+```bash
+# Option A: Quick test with Docker (Recommended)
+docker run -d -p 5000:5000 \
+  -e GHOST_ADMIN_API_KEY=your_ghost_key \
+  -e GHOST_API_URL=https://your-blog.com \
+  -e GEMINI_API_KEY=your_gemini_key \
+  -e REPLICATE_API_TOKEN=your_replicate_token \
+  betashow/ghost-blog-smart-api
+
+# Option B: Deploy to your server
+# See full deployment guide: https://github.com/preangelleo/ghost-blog-smart
+```
+
+Verify the API is running:
+```bash
+curl http://localhost:5000/health
+# Should return: {"status": "healthy", ...}
+```
+
+### Step 2: Setup Content Creation MCP Server
 
 ```bash
 git clone https://github.com/preangelleo/content-creation-mcp.git
@@ -69,7 +135,7 @@ npm install
 npm install -g wrangler
 ```
 
-### 2. Configure GitHub OAuth
+### Step 3: Configure GitHub OAuth
 
 Create a GitHub OAuth App at [GitHub Developer Settings](https://github.com/settings/developers):
 
@@ -83,7 +149,7 @@ Create a GitHub OAuth App at [GitHub Developer Settings](https://github.com/sett
 - Homepage URL: `https://your-worker.workers.dev`
 - Callback URL: `https://your-worker.workers.dev/callback`
 
-### 3. Setup Environment
+### Step 4: Configure Environment & API Connection
 
 ```bash
 # Copy example configuration
@@ -92,10 +158,22 @@ cp .dev.vars.example .dev.vars
 # Edit .dev.vars with your credentials
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
-COOKIE_ENCRYPTION_KEY=your_api_key_here  # Must match Ghost Blog API key
+COOKIE_ENCRYPTION_KEY=your_api_key_here  # Must match Ghost Blog Smart API key
 ```
 
-### 4. Configure Access Control
+**Important**: Update the Ghost Blog Smart API URL in `src/tools/ghost-blog-tools.ts`:
+
+```typescript
+// Line 4: Update with your Ghost Blog Smart API URL
+const API_BASE_URL = 'http://localhost:5000';  // Local Docker
+// OR
+const API_BASE_URL = 'https://your-api-server.com/ghost-blog-api';  // Production
+
+// Line 5: Must match the API key used in Ghost Blog Smart
+const GHOST_BLOG_API_KEY = 'your-matching-api-key';
+```
+
+### Step 5: Configure Access Control
 
 **IMPORTANT**: Update your GitHub username for exclusive access:
 
@@ -106,16 +184,17 @@ const ALLOWED_USERNAMES = new Set<string>([
 ]);
 ```
 
-### 5. Test Locally
+### Step 6: Test Locally
 
 ```bash
 # Start development server
 wrangler dev
 
 # Server runs at http://localhost:8792
+# Test authentication: http://localhost:8792/authorize
 ```
 
-### 6. Deploy to Cloudflare
+### Step 7: Deploy to Cloudflare (Optional)
 
 ```bash
 # Login to Cloudflare
@@ -153,6 +232,26 @@ Add to your Claude Desktop configuration:
 
 ## 💡 Usage Examples
 
+### Complete System Setup Example
+
+1. **Start Ghost Blog Smart API**:
+```bash
+docker run -d -p 5000:5000 \
+  -e GHOST_ADMIN_API_KEY=2a3f4b5c6d7e8f9g0h1i2j3k \
+  -e GHOST_API_URL=https://myblog.ghost.io \
+  -e GEMINI_API_KEY=AIza... \
+  -e REPLICATE_API_TOKEN=r8_... \
+  betashow/ghost-blog-smart-api
+```
+
+2. **Configure and Start MCP Server**:
+```bash
+cd content-creation-mcp
+wrangler dev
+```
+
+3. **Use in Claude Desktop**:
+
 ### Create a Post with AI Enhancement
 ```
 "Use ghost_smart_create to write about 'The future of AI in healthcare' as a draft"
@@ -184,15 +283,44 @@ Ghost Blog Smart API
 Ghost CMS
 ```
 
-## 🔧 Configuration
+## 🔧 Configuration Details
 
-### Ghost Blog Smart API
+### Complete Setup Flow
 
-The MCP server connects to the Ghost Blog Smart API. Ensure it's deployed and accessible:
+```mermaid
+graph LR
+    A[Ghost CMS] --> B[Ghost Blog Smart API]
+    B --> C[Content Creation MCP]
+    C --> D[Claude Desktop]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#bfb,stroke:#333,stroke-width:2px
+    style D fill:#ffb,stroke:#333,stroke-width:2px
+```
 
-- Default URL: `https://animagent.ai/ghost-blog-api`
-- API Key: Must match `COOKIE_ENCRYPTION_KEY`
-- See [ghost-blog-smart](https://github.com/preangelleo/ghost-blog-smart) for deployment
+### Ghost Blog Smart API Connection
+
+The MCP server requires a running Ghost Blog Smart API instance:
+
+#### Local Development Setup
+```javascript
+// src/tools/ghost-blog-tools.ts
+const API_BASE_URL = 'http://localhost:5000';  // Local Docker instance
+const GHOST_BLOG_API_KEY = 'your-dev-api-key';
+```
+
+#### Production Setup
+```javascript
+// src/tools/ghost-blog-tools.ts
+const API_BASE_URL = 'https://your-server.com/ghost-blog-api';
+const GHOST_BLOG_API_KEY = 'your-production-api-key';
+```
+
+**Deployment Options for Ghost Blog Smart:**
+1. **Docker** (Fastest): See [Docker guide](https://github.com/preangelleo/ghost-blog-smart#-docker-deployment)
+2. **Python Package**: `pip install ghost-blog-smart`
+3. **Custom Server**: Deploy with nginx reverse proxy
 
 ### Timeouts
 
@@ -239,6 +367,40 @@ wrangler tail
 - **Session Security**: HMAC-signed cookies
 - **API Protection**: Key-based authentication
 - **No Hardcoded Secrets**: Environment variable configuration
+
+## 🔍 Troubleshooting
+
+### Common Setup Issues
+
+1. **"Ghost Blog Smart API not reachable"**
+   - Verify Ghost Blog Smart is running: `curl http://localhost:5000/health`
+   - Check API URL in `src/tools/ghost-blog-tools.ts`
+   - Ensure Docker container is running: `docker ps`
+
+2. **"API Key mismatch"**
+   - Ensure `COOKIE_ENCRYPTION_KEY` in `.dev.vars` matches Ghost Blog Smart API key
+   - Both must be the same value for authentication to work
+
+3. **"Ghost CMS connection failed"**
+   - Check Ghost Blog Smart environment variables
+   - Verify `GHOST_ADMIN_API_KEY` and `GHOST_API_URL` are correct
+   - Test Ghost Admin API directly
+
+4. **"MCP tools not appearing in Claude"**
+   - Restart Claude Desktop after configuration changes
+   - Verify MCP server is running: Check `wrangler dev` output
+   - Test authentication: Visit `http://localhost:8792/authorize`
+
+### Deployment Checklist
+
+- [ ] Ghost Blog Smart API deployed and accessible
+- [ ] Ghost CMS credentials configured in Ghost Blog Smart
+- [ ] AI API keys (Gemini, Replicate) configured
+- [ ] Content Creation MCP cloned and npm installed
+- [ ] GitHub OAuth app created and configured
+- [ ] API URLs and keys matched between services
+- [ ] Access control username updated
+- [ ] Local testing successful
 
 ## 🤝 Contributing
 
