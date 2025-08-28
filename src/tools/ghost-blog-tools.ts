@@ -10,14 +10,8 @@ const ALLOWED_USERNAMES = new Set<string>([
 const API_BASE_URL = 'https://animagent.ai/ghost-blog-api';
 const GHOST_BLOG_API_KEY = '1fc21aec-7246-48c5-acef-d4743485de01'; // Should match COOKIE_ENCRYPTION_KEY in Worker
 
-interface ApiResponse {
-	success: boolean;
-	data?: any;
-	error?: string;
-	message?: string;
-	timestamp?: string;
-	version?: string;
-}
+// Removed ApiResponse interface as it's not used anymore
+// The API returns data directly which we wrap in our own structure
 
 async function callGhostBlogApi(
 	endpoint: string, 
@@ -29,7 +23,7 @@ async function callGhostBlogApi(
 		ghost_admin_api_key?: string;
 		ghost_api_url?: string;
 	}
-): Promise<ApiResponse> {
+): Promise<any> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -73,7 +67,12 @@ async function callGhostBlogApi(
 			throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
 		}
 
-		return await response.json();
+		const jsonResponse = await response.json();
+		// The Ghost Blog Smart API returns data directly, not wrapped in { success, data }
+		return {
+			success: true,
+			data: jsonResponse
+		};
 	} catch (error: any) {
 		clearTimeout(timeoutId);
 		
@@ -201,7 +200,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			return {
 				content: [{
 					type: "text",
-					text: `**Post ${params.is_test ? 'Test Completed' : 'Created Successfully'}! ✅**\n\n**Title:** ${post.title}\n**Status:** ${post.status}\n**URL:** ${post.url || 'Test mode - no URL'}\n**Tags:** ${post.tags?.join(', ') || 'None'}\n**Featured:** ${post.featured ? 'Yes' : 'No'}\n${post.feature_image ? `**Feature Image:** Generated successfully` : ''}\n\n**Excerpt:**\n${post.excerpt || 'No excerpt'}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ Your post is now ${post.status === 'published' ? 'live' : 'saved as draft'}!`}`
+					text: `**Post ${params.is_test ? 'Test Completed' : 'Created Successfully'}! ✅**\n\n**Title:** ${post.title || params.title}\n**Status:** ${post.status || params.status}\n**URL:** ${post.url || 'Test mode - no URL'}\n**Tags:** ${post.tags?.join(', ') || params.tags?.join(', ') || 'None'}\n**Featured:** ${post.featured !== undefined ? (post.featured ? 'Yes' : 'No') : (params.featured ? 'Yes' : 'No')}\n${post.feature_image ? `**Feature Image:** Generated successfully` : ''}\n\n**Excerpt:**\n${post.excerpt || params.excerpt || 'No excerpt'}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ Your post is now ${(post.status || params.status) === 'published' ? 'live' : 'saved as draft'}!`}`
 				}]
 			};
 		}
@@ -242,7 +241,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			return {
 				content: [{
 					type: "text",
-					text: `**AI-Enhanced Post ${params.is_test ? 'Test Completed' : 'Created'}! 🤖✅**\n\n**Title:** ${post.title}\n**Status:** ${post.status}\n**URL:** ${post.url || 'Test mode - no URL'}\n**Tags:** ${post.tags?.join(', ') || 'None'}\n**Language:** ${params.preferred_language}\n\n**AI-Generated Excerpt:**\n${post.excerpt || 'No excerpt'}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ AI has transformed your ideas into a ${post.status === 'published' ? 'live post' : 'draft'}!`}\n\n**Original Input:**\n"${params.user_input}"`
+					text: `**AI-Enhanced Post ${params.is_test ? 'Test Completed' : 'Created'}! 🤖✅**\n\n**Title:** ${post.title || 'AI-generated title'}\n**Status:** ${post.status || params.status}\n**URL:** ${post.url || 'Test mode - no URL'}\n**Tags:** ${post.tags?.join(', ') || 'AI-generated'}\n**Language:** ${params.preferred_language}\n\n**AI-Generated Excerpt:**\n${post.excerpt || 'AI-generated excerpt'}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ AI has transformed your ideas into a ${(post.status || params.status) === 'published' ? 'live post' : 'draft'}!`}\n\n**Original Input:**\n"${params.user_input}"`
 				}]
 			};
 		}
