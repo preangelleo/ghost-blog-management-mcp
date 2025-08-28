@@ -68,11 +68,8 @@ async function callGhostBlogApi(
 		}
 
 		const jsonResponse = await response.json();
-		// The Ghost Blog Smart API returns data directly, not wrapped in { success, data }
-		return {
-			success: true,
-			data: jsonResponse
-		};
+		// The Ghost Blog Smart API returns {success, timestamp, data} structure
+		return jsonResponse;
 	} catch (error: any) {
 		clearTimeout(timeoutId);
 		
@@ -196,11 +193,18 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const post = result.data;
+			const post = result.data || {};
+			// Handle the actual response structure from Ghost Blog Smart API
+			const postUrl = post.url || post.link || (params.is_test ? 'Test mode - no real URL' : 'URL not available');
+			const postId = post.post_id || post.id || (params.is_test ? 'test-id' : 'Unknown');
+			const postTitle = post.title || post.generated_title || params.title;
+			const postTags = post.tags || post.generated_tags || params.tags || [];
+			const postExcerpt = post.excerpt || post.generated_excerpt || params.excerpt || 'No excerpt';
+			
 			return {
 				content: [{
 					type: "text",
-					text: `**Post ${params.is_test ? 'Test Completed' : 'Created Successfully'}! ✅**\n\n**Title:** ${post.title || params.title}\n**Status:** ${post.status || params.status}\n**URL:** ${post.url || 'Test mode - no URL'}\n**Tags:** ${post.tags?.join(', ') || params.tags?.join(', ') || 'None'}\n**Featured:** ${post.featured !== undefined ? (post.featured ? 'Yes' : 'No') : (params.featured ? 'Yes' : 'No')}\n${post.feature_image ? `**Feature Image:** Generated successfully` : ''}\n\n**Excerpt:**\n${post.excerpt || params.excerpt || 'No excerpt'}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ Your post is now ${(post.status || params.status) === 'published' ? 'live' : 'saved as draft'}!`}`
+					text: `**Post ${params.is_test ? 'Test Completed' : 'Created Successfully'}! ✅**\n\n**Title:** ${postTitle}\n**Status:** ${post.status || params.status}\n**Post ID:** ${postId}\n**URL:** ${postUrl}\n**Tags:** ${Array.isArray(postTags) ? postTags.join(', ') : 'None'}\n**Featured:** ${post.featured !== undefined ? (post.featured ? 'Yes' : 'No') : (params.featured ? 'Yes' : 'No')}\n${post.feature_image ? `**Feature Image:** Generated successfully` : ''}\n\n**Excerpt:**\n${postExcerpt}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ Your post is now ${(post.status || params.status) === 'published' ? 'live' : 'saved as draft'}!`}`
 				}]
 			};
 		}
@@ -237,11 +241,18 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const post = result.data;
+			const post = result.data || {};
+			// Handle the smart-create response structure
+			const postUrl = post.url || (params.is_test ? 'Test mode URL' : 'URL not available');
+			const postId = post.post_id || (params.is_test ? 'test-id' : 'Unknown');
+			const postTitle = post.generated_title || post.rewritten_data?.title || 'AI-generated title';
+			const postTags = post.generated_tags || post.rewritten_data?.tags || [];
+			const postExcerpt = post.generated_excerpt || post.rewritten_data?.excerpt || 'AI-generated excerpt';
+			
 			return {
 				content: [{
 					type: "text",
-					text: `**AI-Enhanced Post ${params.is_test ? 'Test Completed' : 'Created'}! 🤖✅**\n\n**Title:** ${post.title || 'AI-generated title'}\n**Status:** ${post.status || params.status}\n**URL:** ${post.url || 'Test mode - no URL'}\n**Tags:** ${post.tags?.join(', ') || 'AI-generated'}\n**Language:** ${params.preferred_language}\n\n**AI-Generated Excerpt:**\n${post.excerpt || 'AI-generated excerpt'}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ AI has transformed your ideas into a ${(post.status || params.status) === 'published' ? 'live post' : 'draft'}!`}\n\n**Original Input:**\n"${params.user_input}"`
+					text: `**AI-Enhanced Post ${params.is_test ? 'Test Completed' : 'Created'}! 🤖✅**\n\n**Title:** ${postTitle}\n**Status:** ${post.status || params.status}\n**Post ID:** ${postId}\n**URL:** ${postUrl}\n**Tags:** ${Array.isArray(postTags) ? postTags.join(', ') : 'AI-generated'}\n**Language:** ${params.preferred_language}\n\n**AI-Generated Excerpt:**\n${postExcerpt}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ AI has transformed your ideas into a ${(post.status || params.status) === 'published' ? 'live post' : 'draft'}!`}\n\n**Original Input:**\n"${params.user_input}"`
 				}]
 			};
 		}
