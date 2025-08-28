@@ -293,10 +293,10 @@ graph LR
     B --> C[Content Creation MCP]
     C --> D[Claude Desktop]
     
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style C fill:#bfb,stroke:#333,stroke-width:2px
-    style D fill:#ffb,stroke:#333,stroke-width:2px
+    style A fill:#E8E8E8,stroke:#333,stroke-width:2px,color:#1d1e1f
+    style B fill:#D4E4FF,stroke:#333,stroke-width:2px,color:#1d1e1f
+    style C fill:#D4FFD4,stroke:#333,stroke-width:2px,color:#1d1e1f
+    style D fill:#FFE6CC,stroke:#333,stroke-width:2px,color:#1d1e1f
 ```
 
 ### Ghost Blog Smart API Connection
