@@ -1,6 +1,6 @@
 {
-  "name": "my-credentials-mcp",
-  "version": "0.0.1",
+  "name": "content-creation-mcp",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {

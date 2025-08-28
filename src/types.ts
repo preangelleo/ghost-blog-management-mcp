@@ -52,22 +52,6 @@ export interface ParsedApprovalResult {
   headers: Record<string, string>;
 }
 
-// MCP tool schemas using Zod
-export const ListTablesSchema = {};
-
-export const QueryDatabaseSchema = {
-  sql: z
-    .string()
-    .min(1, "SQL query cannot be empty")
-    .describe("SQL query to execute (SELECT queries only)"),
-};
-
-export const ExecuteDatabaseSchema = {
-  sql: z
-    .string()
-    .min(1, "SQL command cannot be empty")
-    .describe("SQL command to execute (INSERT, UPDATE, DELETE, CREATE, etc.)"),
-};
 
 // MCP response types
 export interface McpTextContent {
@@ -108,19 +92,6 @@ export function createErrorResponse(message: string, details?: any): McpResponse
   };
 }
 
-// Database operation result type
-export interface DatabaseOperationResult<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  duration?: number;
-}
-
-// SQL validation result
-export interface SqlValidationResult {
-  isValid: boolean;
-  error?: string;
-}
 
 // Re-export external types that are used throughout
 export type { AuthRequest, OAuthHelpers, ClientInfo };

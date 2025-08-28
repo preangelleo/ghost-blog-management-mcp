@@ -7,16 +7,16 @@ import { registerAllTools } from "./tools/register-tools";
 
 export class MyMCP extends McpAgent<Env, Record<string, never>, Props> {
 	server = new McpServer({
-		name: "PostgreSQL Database MCP Server (HTTP API)",
-		version: "1.1.0",
+		name: "Ghost Blog Content Creation MCP Server",
+		version: "2.0.0",
 	});
 
 	async init() {
-		// Register all HTTP API tools based on user permissions
+		// Register all Ghost Blog tools based on user permissions
 		registerAllTools(this.server, this.env, this.props);
 		
-		console.log(`MCP Server initialized for user: ${this.props.login} (${this.props.name})`);
-		console.log('Using HTTP API wrapper to connect to PostgreSQL database');
+		console.log(`Content Creation MCP Server initialized for user: ${this.props.login} (${this.props.name})`);
+		console.log('Connected to Ghost Blog Smart API at animagent.ai');
 	}
 }
 
