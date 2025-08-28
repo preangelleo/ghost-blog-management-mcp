@@ -23,7 +23,8 @@ async function callGhostBlogApi(
 	endpoint: string, 
 	method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET', 
 	body?: any,
-	timeout: number = 30000,
+	timeout: number = 300000, // Default 5 minutes for all operations to handle image generation
+	env?: Env,
 	customGhostCredentials?: {
 		ghost_admin_api_key?: string;
 		ghost_api_url?: string;
@@ -33,20 +34,30 @@ async function callGhostBlogApi(
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
 
 	try {
-		// Build headers with optional credential overrides
+		// Build headers with three-level priority system
 		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
 			'X-API-Key': GHOST_BLOG_API_KEY,
 			'User-Agent': 'Content-Creation-MCP/1.0'
 		};
 
-		// Add optional Ghost credential headers if provided
+		// Priority 1: LLM-provided credentials (highest priority)
 		if (customGhostCredentials?.ghost_admin_api_key) {
 			headers['X-Ghost-API-Key'] = customGhostCredentials.ghost_admin_api_key;
 		}
 		if (customGhostCredentials?.ghost_api_url) {
 			headers['X-Ghost-API-URL'] = customGhostCredentials.ghost_api_url;
 		}
+		
+		// Priority 2: Worker environment variables (if no LLM credentials provided)
+		if (!customGhostCredentials?.ghost_admin_api_key && env?.CUSTOM_GHOST_ADMIN_API_KEY) {
+			headers['X-Ghost-API-Key'] = env.CUSTOM_GHOST_ADMIN_API_KEY;
+		}
+		if (!customGhostCredentials?.ghost_api_url && env?.CUSTOM_GHOST_API_URL) {
+			headers['X-Ghost-API-URL'] = env.CUSTOM_GHOST_API_URL;
+		}
+		
+		// Priority 3: Backend API server defaults (no headers added, server uses its own config)
 
 		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
 			method,
@@ -84,7 +95,7 @@ async function callGhostBlogApi(
 }
 
 
-export function registerGhostBlogTools(server: McpServer, _env: Env, props: Props) {
+export function registerGhostBlogTools(server: McpServer, env: Env, props: Props) {
 	// Only register tools for authorized users
 	if (!ALLOWED_USERNAMES.has(props.login)) {
 		console.log(`User ${props.login} is not authorized to use Ghost Blog tools`);
@@ -97,7 +108,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"Check if the Ghost Blog Smart API is running and healthy. Returns API status, version, and available features.",
 		{},
 		async () => {
-			const result = await callGhostBlogApi('/health');
+			const result = await callGhostBlogApi('/health', 'GET', undefined, 30000, env);
 			
 			if (!result.success) {
 				return {
@@ -124,7 +135,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"Get basic information about the Ghost Blog Smart API including name, description, version, and available endpoints.",
 		{},
 		async () => {
-			const result = await callGhostBlogApi('/');
+			const result = await callGhostBlogApi('/', 'GET', undefined, 30000, env);
 			
 			if (!result.success) {
 				return {
@@ -174,7 +185,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi('/api/posts', 'POST', requestBody, timeout, customCredentials);
+			const result = await callGhostBlogApi('/api/posts', 'POST', requestBody, timeout, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -215,7 +226,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi('/api/smart-create', 'POST', requestBody, 60000, customCredentials);
+			const result = await callGhostBlogApi('/api/smart-create', 'POST', requestBody, 60000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -262,7 +273,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				queryParams.append('featured', queryOptions.featured.toString());
 			}
 
-			const result = await callGhostBlogApi(`/api/posts?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts?${queryParams.toString()}`, 'GET', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -322,7 +333,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			queryParams.append('status', searchOptions.status);
 			queryParams.append('limit', searchOptions.limit.toString());
 
-			const result = await callGhostBlogApi(`/api/posts/advanced?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts/advanced?${queryParams.toString()}`, 'GET', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -373,7 +384,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'GET', undefined, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'GET', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -417,7 +428,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'PUT', updateData, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'PUT', updateData, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -460,7 +471,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi(`/api/posts/${post_id}/image`, 'PUT', imageOptions, 300000, customCredentials); // 5 minutes timeout
+			const result = await callGhostBlogApi(`/api/posts/${post_id}/image`, 'PUT', imageOptions, 300000, env, customCredentials); // 5 minutes timeout
 			
 			if (!result.success) {
 				return {
@@ -498,7 +509,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'DELETE', undefined, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'DELETE', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -538,7 +549,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			const queryParams = new URLSearchParams();
 			queryParams.append('days', days.toString());
 
-			const result = await callGhostBlogApi(`/api/posts/summary?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts/summary?${queryParams.toString()}`, 'GET', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -576,7 +587,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 				ghost_api_url
 			} : undefined;
 			
-			const result = await callGhostBlogApi('/api/posts/batch-details', 'POST', { post_ids }, 30000, customCredentials);
+			const result = await callGhostBlogApi('/api/posts/batch-details', 'POST', { post_ids }, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -632,7 +643,7 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			queryParams.append('pattern', pattern);
 			queryParams.append('limit', limit.toString());
 
-			const result = await callGhostBlogApi(`/api/posts/search/by-date-pattern?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts/search/by-date-pattern?${queryParams.toString()}`, 'GET', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {

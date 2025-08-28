@@ -14,6 +14,9 @@ declare namespace Cloudflare {
 		NODE_ENV: string;
 		MCP_OBJECT: DurableObjectNamespace<import("./src/index").MyMCP>;
 		AI: Ai;
+		// Optional custom Ghost blog credentials for Worker-level configuration
+		CUSTOM_GHOST_ADMIN_API_KEY?: string;
+		CUSTOM_GHOST_API_URL?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}
