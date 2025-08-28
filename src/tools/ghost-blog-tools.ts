@@ -159,7 +159,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 3: Create Post
 	server.tool(
 		"ghost_create_post",
-		"Create a new blog post in Ghost CMS. Can optionally generate an AI feature image using Replicate Flux or Google Imagen. Set is_test=true to test without creating real posts.",
+		"Create a new blog post in Ghost CMS. Can optionally generate an AI feature image using Replicate Flux or Google Imagen. Set is_test=true to test without creating real posts. You can specify ghost_admin_api_key and ghost_api_url to post to a different blog than the default.",
 		{
 			title: z.string().min(1).describe("Title of the blog post"),
 			content: z.string().min(1).describe("Content in HTML or Markdown format"),
@@ -210,7 +210,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 4: Smart Create
 	server.tool(
 		"ghost_smart_create",
-		"Create a blog post using AI to enhance your input. Provide notes or ideas, and AI will generate a complete post with title, content, and tags. Uses Google Gemini for content generation.",
+		"Create a blog post using AI to enhance your input. Provide notes or ideas, and AI will generate a complete post with title, content, and tags. Uses Google Gemini for content generation. You can specify ghost_admin_api_key and ghost_api_url to post to a different blog.",
 		{
 			user_input: z.string().min(1).describe("Your ideas, notes, or topic to be enhanced by AI into a full blog post"),
 			status: z.enum(["draft", "published"]).default("draft").describe("Post status after creation"),
@@ -251,7 +251,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 5: Get Posts
 	server.tool(
 		"ghost_get_posts",
-		"Retrieve a list of blog posts from Ghost CMS with optional filters for status and featured posts.",
+		"Retrieve a list of blog posts from Ghost CMS with optional filters for status and featured posts. You can specify ghost_admin_api_key and ghost_api_url to query a different blog.",
 		{
 			limit: z.number().int().min(1).max(100).default(10).describe("Maximum number of posts to retrieve (1-100)"),
 			status: z.enum(["draft", "published", "all"]).default("all").describe("Filter by post status"),
@@ -311,7 +311,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 6: Advanced Search
 	server.tool(
 		"ghost_advanced_search",
-		"Search blog posts with advanced filters including text search and tag filtering.",
+		"Search blog posts with advanced filters including text search and tag filtering. You can specify ghost_admin_api_key and ghost_api_url to search a different blog.",
 		{
 			search: z.string().optional().describe("Search term to find in post title or content"),
 			tag: z.string().optional().describe("Filter posts by specific tag name"),
@@ -371,7 +371,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 7: Get Post Details
 	server.tool(
 		"ghost_get_post_details",
-		"Get complete details of a specific blog post by its ID, including content, tags, and metadata.",
+		"Get complete details of a specific blog post by its ID, including content, tags, and metadata. You can specify ghost_admin_api_key and ghost_api_url to query from a different blog.",
 		{
 			post_id: z.string().min(1).describe("The Ghost post ID (24-character hex string)"),
 			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to query a different blog"),
@@ -409,7 +409,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 8: Update Post
 	server.tool(
 		"ghost_update_post",
-		"Update an existing blog post's content, metadata, or status. Only provide the fields you want to change.",
+		"Update an existing blog post's content, metadata, or status. Only provide the fields you want to change. You can specify ghost_admin_api_key and ghost_api_url to update a post on a different blog.",
 		{
 			post_id: z.string().min(1).describe("The Ghost post ID to update"),
 			title: z.string().optional().describe("New title for the post"),
@@ -455,7 +455,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 9: Update Post Image
 	server.tool(
 		"ghost_update_post_image",
-		"Generate and update the feature image for an existing blog post using AI. Takes 60-300 seconds to complete. Uses either Replicate Flux (faster) or Google Imagen (higher quality).",
+		"Generate and update the feature image for an existing blog post using AI. Takes 60-300 seconds to complete. Uses either Replicate Flux (faster) or Google Imagen (higher quality). You can specify ghost_admin_api_key and ghost_api_url to update an image on a different blog.",
 		{
 			post_id: z.string().min(1).describe("The Ghost post ID to update image for"),
 			use_generated_feature_image: z.boolean().default(true).describe("Must be true to generate image"),
@@ -496,7 +496,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 10: Delete Post
 	server.tool(
 		"ghost_delete_post",
-		"Permanently delete a blog post from Ghost CMS. This action cannot be undone.",
+		"Permanently delete a blog post from Ghost CMS. This action cannot be undone. You can specify ghost_admin_api_key and ghost_api_url to delete from a different blog.",
 		{
 			post_id: z.string().min(1).describe("The Ghost post ID (24-character hex string)"),
 			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to delete from a different blog"),
@@ -533,7 +533,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 11: Posts Summary
 	server.tool(
 		"ghost_posts_summary",
-		"Get summary statistics about blog posts including counts by status and recent activity.",
+		"Get summary statistics about blog posts including counts by status and recent activity. You can specify ghost_admin_api_key and ghost_api_url to get statistics from a different blog.",
 		{
 			days: z.number().int().min(1).max(365).default(30).describe("Number of days to analyze (1-365)"),
 			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to get summary from a different blog"),
@@ -574,7 +574,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 12: Batch Get Details
 	server.tool(
 		"ghost_batch_get_details",
-		"Get details for multiple posts in a single request. More efficient than multiple individual requests.",
+		"Get details for multiple posts in a single request. More efficient than multiple individual requests. You can specify ghost_admin_api_key and ghost_api_url to query from a different blog.",
 		{
 			post_ids: z.array(z.string()).min(1).max(10).describe("Array of Ghost post IDs (max 10)"),
 			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to query a different blog"),
@@ -625,7 +625,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 13: Search by Date
 	server.tool(
 		"ghost_search_by_date",
-		"Search posts by date pattern. Useful for finding posts from specific time periods.",
+		"Search posts by date pattern. Useful for finding posts from specific time periods. You can specify ghost_admin_api_key and ghost_api_url to search a different blog.",
 		{
 			pattern: z.string().min(4).describe("Date pattern: YYYY (year), YYYY-MM (month), or YYYY-MM-DD (specific date)"),
 			limit: z.number().int().min(1).max(50).default(5).describe("Maximum results (1-50)"),
