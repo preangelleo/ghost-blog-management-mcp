@@ -7,7 +7,7 @@ import { registerAllTools } from "./tools/register-tools";
 
 export class MyMCP extends McpAgent<Env, Record<string, never>, Props> {
 	server = new McpServer({
-		name: "Ghost Blog Content Creation MCP Server",
+		name: "Ghost Blog Management",
 		version: "2.0.0",
 	});
 
@@ -15,7 +15,7 @@ export class MyMCP extends McpAgent<Env, Record<string, never>, Props> {
 		// Register all Ghost Blog tools based on user permissions
 		registerAllTools(this.server, this.env, this.props);
 		
-		console.log(`Content Creation MCP Server initialized for user: ${this.props.login} (${this.props.name})`);
+		console.log(`Ghost Blog Management Server initialized for user: ${this.props.login} (${this.props.name})`);
 		console.log('Connected to Ghost Blog Smart API at animagent.ai');
 	}
 }

@@ -23,19 +23,34 @@ async function callGhostBlogApi(
 	endpoint: string, 
 	method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET', 
 	body?: any,
-	timeout: number = 30000
+	timeout: number = 30000,
+	customGhostCredentials?: {
+		ghost_admin_api_key?: string;
+		ghost_api_url?: string;
+	}
 ): Promise<ApiResponse> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), timeout);
 
 	try {
+		// Build headers with optional credential overrides
+		const headers: Record<string, string> = {
+			'Content-Type': 'application/json',
+			'X-API-Key': GHOST_BLOG_API_KEY,
+			'User-Agent': 'Content-Creation-MCP/1.0'
+		};
+
+		// Add optional Ghost credential headers if provided
+		if (customGhostCredentials?.ghost_admin_api_key) {
+			headers['X-Ghost-API-Key'] = customGhostCredentials.ghost_admin_api_key;
+		}
+		if (customGhostCredentials?.ghost_api_url) {
+			headers['X-Ghost-API-URL'] = customGhostCredentials.ghost_api_url;
+		}
+
 		const response = await fetch(`${API_BASE_URL}${endpoint}`, {
 			method,
-			headers: {
-				'Content-Type': 'application/json',
-				'X-API-Key': GHOST_BLOG_API_KEY,
-				'User-Agent': 'Content-Creation-MCP/1.0'
-			},
+			headers,
 			body: body ? JSON.stringify(body) : undefined,
 			signal: controller.signal
 		});
@@ -145,11 +160,21 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			prefer_flux: z.boolean().optional().describe("Use Replicate Flux for faster image generation (3-7s)"),
 			prefer_imagen: z.boolean().optional().describe("Use Google Imagen for professional quality (10-15s)"),
 			image_aspect_ratio: z.enum(["16:9", "1:1", "9:16", "4:3", "3:2"]).optional().describe("Aspect ratio for generated image"),
-			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post")
+			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to post to a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to post to a different blog")
 		},
 		async (params) => {
 			const timeout = params.use_generated_feature_image ? 300000 : 30000; // 5 minutes for images
-			const result = await callGhostBlogApi('/api/posts', 'POST', params, timeout);
+			
+			// Extract custom credentials and prepare request body
+			const { ghost_admin_api_key, ghost_api_url, ...requestBody } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi('/api/posts', 'POST', requestBody, timeout, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -179,10 +204,18 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			user_input: z.string().min(1).describe("Your ideas, notes, or topic to be enhanced by AI into a full blog post"),
 			status: z.enum(["draft", "published"]).default("draft").describe("Post status after creation"),
 			preferred_language: z.string().default("English").describe("Language for the generated content"),
-			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post")
+			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to post to a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to post to a different blog")
 		},
 		async (params) => {
-			const result = await callGhostBlogApi('/api/smart-create', 'POST', params, 60000);
+			const { ghost_admin_api_key, ghost_api_url, ...requestBody } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi('/api/smart-create', 'POST', requestBody, 60000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -211,17 +244,25 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		{
 			limit: z.number().int().min(1).max(100).default(10).describe("Maximum number of posts to retrieve (1-100)"),
 			status: z.enum(["draft", "published", "all"]).default("all").describe("Filter by post status"),
-			featured: z.boolean().optional().describe("Filter to show only featured posts")
+			featured: z.boolean().optional().describe("Filter to show only featured posts"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to query a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to query a different blog")
 		},
 		async (params) => {
+			const { ghost_admin_api_key, ghost_api_url, ...queryOptions } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
 			const queryParams = new URLSearchParams();
-			queryParams.append('limit', params.limit.toString());
-			queryParams.append('status', params.status);
-			if (params.featured !== undefined) {
-				queryParams.append('featured', params.featured.toString());
+			queryParams.append('limit', queryOptions.limit.toString());
+			queryParams.append('status', queryOptions.status);
+			if (queryOptions.featured !== undefined) {
+				queryParams.append('featured', queryOptions.featured.toString());
 			}
 
-			const result = await callGhostBlogApi(`/api/posts?${queryParams.toString()}`);
+			const result = await callGhostBlogApi(`/api/posts?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -264,16 +305,24 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			search: z.string().optional().describe("Search term to find in post title or content"),
 			tag: z.string().optional().describe("Filter posts by specific tag name"),
 			status: z.enum(["draft", "published", "all"]).default("all").describe("Filter by post status"),
-			limit: z.number().int().min(1).max(50).default(5).describe("Maximum results to return (1-50)")
+			limit: z.number().int().min(1).max(50).default(5).describe("Maximum results to return (1-50)"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to search a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to search a different blog")
 		},
 		async (params) => {
+			const { ghost_admin_api_key, ghost_api_url, ...searchOptions } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
 			const queryParams = new URLSearchParams();
-			if (params.search) queryParams.append('search', params.search);
-			if (params.tag) queryParams.append('tag', params.tag);
-			queryParams.append('status', params.status);
-			queryParams.append('limit', params.limit.toString());
+			if (searchOptions.search) queryParams.append('search', searchOptions.search);
+			if (searchOptions.tag) queryParams.append('tag', searchOptions.tag);
+			queryParams.append('status', searchOptions.status);
+			queryParams.append('limit', searchOptions.limit.toString());
 
-			const result = await callGhostBlogApi(`/api/posts/advanced?${queryParams.toString()}`);
+			const result = await callGhostBlogApi(`/api/posts/advanced?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -313,10 +362,18 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"ghost_get_post_details",
 		"Get complete details of a specific blog post by its ID, including content, tags, and metadata.",
 		{
-			post_id: z.string().min(1).describe("The Ghost post ID (24-character hex string)")
+			post_id: z.string().min(1).describe("The Ghost post ID (24-character hex string)"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to query a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to query a different blog")
 		},
-		async ({ post_id }) => {
-			const result = await callGhostBlogApi(`/api/posts/${post_id}`);
+		async (params) => {
+			const { post_id, ghost_admin_api_key, ghost_api_url } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'GET', undefined, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -349,10 +406,18 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			excerpt: z.string().optional().describe("New excerpt/summary"),
 			tags: z.array(z.string()).optional().describe("New array of tag names"),
 			status: z.enum(["draft", "published"]).optional().describe("Change post status"),
-			featured: z.boolean().optional().describe("Update featured status")
+			featured: z.boolean().optional().describe("Update featured status"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to update a post on a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to update a post on a different blog")
 		},
-		async ({ post_id, ...updateData }) => {
-			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'PUT', updateData);
+		async (params) => {
+			const { post_id, ghost_admin_api_key, ghost_api_url, ...updateData } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'PUT', updateData, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -384,14 +449,18 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 			post_id: z.string().min(1).describe("The Ghost post ID to update image for"),
 			use_generated_feature_image: z.boolean().default(true).describe("Must be true to generate image"),
 			prefer_imagen: z.boolean().optional().describe("Use Google Imagen (10-15s generation, professional quality)"),
-			image_aspect_ratio: z.enum(["16:9", "1:1", "9:16", "4:3", "3:2"]).default("16:9").describe("Image aspect ratio")
+			image_aspect_ratio: z.enum(["16:9", "1:1", "9:16", "4:3", "3:2"]).default("16:9").describe("Image aspect ratio"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to update image on a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to update image on a different blog")
 		},
 		async (params) => {
-			const result = await callGhostBlogApi(`/api/posts/${params.post_id}/image`, 'PUT', {
-				use_generated_feature_image: params.use_generated_feature_image,
-				prefer_imagen: params.prefer_imagen,
-				image_aspect_ratio: params.image_aspect_ratio
-			}, 300000); // 5 minutes timeout
+			const { post_id, ghost_admin_api_key, ghost_api_url, ...imageOptions } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi(`/api/posts/${post_id}/image`, 'PUT', imageOptions, 300000, customCredentials); // 5 minutes timeout
 			
 			if (!result.success) {
 				return {
@@ -418,10 +487,18 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"ghost_delete_post",
 		"Permanently delete a blog post from Ghost CMS. This action cannot be undone.",
 		{
-			post_id: z.string().min(1).describe("The Ghost post ID (24-character hex string)")
+			post_id: z.string().min(1).describe("The Ghost post ID (24-character hex string)"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to delete from a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to delete from a different blog")
 		},
-		async ({ post_id }) => {
-			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'DELETE');
+		async (params) => {
+			const { post_id, ghost_admin_api_key, ghost_api_url } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi(`/api/posts/${post_id}`, 'DELETE', undefined, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -447,13 +524,21 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"ghost_posts_summary",
 		"Get summary statistics about blog posts including counts by status and recent activity.",
 		{
-			days: z.number().int().min(1).max(365).default(30).describe("Number of days to analyze (1-365)")
+			days: z.number().int().min(1).max(365).default(30).describe("Number of days to analyze (1-365)"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to get summary from a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to get summary from a different blog")
 		},
 		async (params) => {
+			const { ghost_admin_api_key, ghost_api_url, days } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
 			const queryParams = new URLSearchParams();
-			queryParams.append('days', params.days.toString());
+			queryParams.append('days', days.toString());
 
-			const result = await callGhostBlogApi(`/api/posts/summary?${queryParams.toString()}`);
+			const result = await callGhostBlogApi(`/api/posts/summary?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -480,10 +565,18 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"ghost_batch_get_details",
 		"Get details for multiple posts in a single request. More efficient than multiple individual requests.",
 		{
-			post_ids: z.array(z.string()).min(1).max(10).describe("Array of Ghost post IDs (max 10)")
+			post_ids: z.array(z.string()).min(1).max(10).describe("Array of Ghost post IDs (max 10)"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to query a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to query a different blog")
 		},
-		async ({ post_ids }) => {
-			const result = await callGhostBlogApi('/api/posts/batch-details', 'POST', { post_ids });
+		async (params) => {
+			const { ghost_admin_api_key, ghost_api_url, post_ids } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
+			const result = await callGhostBlogApi('/api/posts/batch-details', 'POST', { post_ids }, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -524,14 +617,22 @@ export function registerGhostBlogTools(server: McpServer, _env: Env, props: Prop
 		"Search posts by date pattern. Useful for finding posts from specific time periods.",
 		{
 			pattern: z.string().min(4).describe("Date pattern: YYYY (year), YYYY-MM (month), or YYYY-MM-DD (specific date)"),
-			limit: z.number().int().min(1).max(50).default(5).describe("Maximum results (1-50)")
+			limit: z.number().int().min(1).max(50).default(5).describe("Maximum results (1-50)"),
+			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to search a different blog"),
+			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to search a different blog")
 		},
 		async (params) => {
+			const { ghost_admin_api_key, ghost_api_url, pattern, limit } = params;
+			const customCredentials = (ghost_admin_api_key || ghost_api_url) ? {
+				ghost_admin_api_key,
+				ghost_api_url
+			} : undefined;
+			
 			const queryParams = new URLSearchParams();
-			queryParams.append('pattern', params.pattern);
-			queryParams.append('limit', params.limit.toString());
+			queryParams.append('pattern', pattern);
+			queryParams.append('limit', limit.toString());
 
-			const result = await callGhostBlogApi(`/api/posts/search/by-date-pattern?${queryParams.toString()}`);
+			const result = await callGhostBlogApi(`/api/posts/search/by-date-pattern?${queryParams.toString()}`, 'GET', undefined, 30000, customCredentials);
 			
 			if (!result.success) {
 				return {

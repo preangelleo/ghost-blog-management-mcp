@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "content-creation-mcp",
+	"name": "ghost-blog-management",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-03-10",
 	"compatibility_flags": [
@@ -39,7 +39,7 @@
 		"enabled": true
 	},
 	"dev": {
-		"port": 8792
+		"port": 8793
 	}
 	/**
 	 * Smart Placement
