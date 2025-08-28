@@ -305,9 +305,10 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const postList = posts.map((post: any, index: number) => 
-				`${index + 1}. **${post.title}**\n   ID: ${post.id}\n   Status: ${post.status}${post.featured ? ' ⭐ Featured' : ''}\n   Tags: ${post.tags?.join(', ') || 'None'}\n   Published: ${post.published_at || 'Not published'}`
-			).join('\n\n');
+			const postList = posts.map((post: any, index: number) => {
+				const tags = post.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name).join(', ') || 'None';
+				return `${index + 1}. **${post.title}**\n   ID: ${post.id}\n   Status: ${post.status}${post.featured ? ' ⭐ Featured' : ''}\n   Tags: ${tags}\n   Published: ${post.published_at || 'Not published'}`;
+			}).join('\n\n');
 
 			return {
 				content: [{
@@ -365,9 +366,10 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const postList = posts.map((post: any, index: number) => 
-				`${index + 1}. **${post.title}**\n   ID: ${post.id}\n   Status: ${post.status}\n   Tags: ${post.tags?.join(', ') || 'None'}\n   Excerpt: ${post.excerpt ? post.excerpt.substring(0, 100) + '...' : 'No excerpt'}`
-			).join('\n\n');
+			const postList = posts.map((post: any, index: number) => {
+				const tags = post.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name).join(', ') || 'None';
+				return `${index + 1}. **${post.title}**\n   ID: ${post.id}\n   Status: ${post.status}\n   Tags: ${tags}\n   Excerpt: ${post.excerpt ? post.excerpt.substring(0, 100) + '...' : 'No excerpt'}`;
+			}).join('\n\n');
 
 			return {
 				content: [{
@@ -619,9 +621,10 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const postDetails = posts.map((post: any) => 
-				`**${post.title}**\nID: ${post.id}\nStatus: ${post.status}${post.featured ? ' ⭐' : ''}\nTags: ${post.tags?.join(', ') || 'None'}\nURL: ${post.url || 'Not available'}`
-			).join('\n\n---\n\n');
+			const postDetails = posts.map((post: any) => {
+				const tags = post.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name).join(', ') || 'None';
+				return `**${post.title}**\nID: ${post.id}\nStatus: ${post.status}${post.featured ? ' ⭐' : ''}\nTags: ${tags}\nURL: ${post.url || 'Not available'}`;
+			}).join('\n\n---\n\n');
 
 			return {
 				content: [{
@@ -675,9 +678,10 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const postList = posts.map((post: any, index: number) => 
-				`${index + 1}. **${post.title}**\n   Date: ${post.published_at || post.created_at}\n   Status: ${post.status}\n   Tags: ${post.tags?.join(', ') || 'None'}`
-			).join('\n\n');
+			const postList = posts.map((post: any, index: number) => {
+				const tags = post.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name).join(', ') || 'None';
+				return `${index + 1}. **${post.title}**\n   Date: ${post.published_at || post.created_at}\n   Status: ${post.status}\n   Tags: ${tags}`;
+			}).join('\n\n');
 
 			return {
 				content: [{
