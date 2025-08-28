@@ -155,19 +155,20 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 3: Create Post
 	server.tool(
 		"ghost_create_post",
-		"Create a new blog post in Ghost CMS. Can optionally generate an AI feature image using Replicate Flux or Google Imagen. Set is_test=true to test without creating real posts. You can specify ghost_admin_api_key and ghost_api_url to post to a different blog than the default.",
+		"Create a new blog post or page in Ghost CMS. Use post_type='page' to create static pages like About, Contact, etc. Can optionally generate an AI feature image using Replicate Flux or Google Imagen. Set is_test=true to test without creating real posts. You can specify ghost_admin_api_key and ghost_api_url to post to a different blog than the default.",
 		{
-			title: z.string().min(1).describe("Title of the blog post"),
+			title: z.string().min(1).describe("Title of the blog post or page"),
 			content: z.string().min(1).describe("Content in HTML or Markdown format"),
+			post_type: z.enum(["post", "page"]).default("post").describe("Type: 'post' for blog posts, 'page' for static pages like About, Contact, etc."),
 			excerpt: z.string().optional().describe("Brief excerpt/summary of the post"),
-			tags: z.array(z.string()).optional().describe("Array of tag names to assign to the post"),
-			status: z.enum(["draft", "published"]).default("draft").describe("Post status: draft or published"),
-			featured: z.boolean().optional().describe("Whether to feature this post"),
+			tags: z.array(z.string()).optional().describe("Array of tag names to assign to the post (not applicable for pages)"),
+			status: z.enum(["draft", "published"]).default("draft").describe("Post/page status: draft or published"),
+			featured: z.boolean().optional().describe("Whether to feature this post (not applicable for pages)"),
 			use_generated_feature_image: z.boolean().optional().describe("Generate AI feature image (adds 60-300s)"),
 			prefer_flux: z.boolean().optional().describe("Use Replicate Flux for faster image generation (3-7s)"),
 			prefer_imagen: z.boolean().optional().describe("Use Google Imagen for professional quality (10-15s)"),
 			image_aspect_ratio: z.enum(["16:9", "1:1", "9:16", "4:3", "3:2"]).optional().describe("Aspect ratio for generated image"),
-			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post"),
+			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post/page"),
 			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to post to a different blog"),
 			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to post to a different blog")
 		},
@@ -200,11 +201,12 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			const postTitle = post.title || post.generated_title || params.title;
 			const postTags = post.tags || post.generated_tags || params.tags || [];
 			const postExcerpt = post.excerpt || post.generated_excerpt || params.excerpt || 'No excerpt';
+			const contentType = params.post_type === 'page' ? 'Page' : 'Post';
 			
 			return {
 				content: [{
 					type: "text",
-					text: `**Post ${params.is_test ? 'Test Completed' : 'Created Successfully'}! ✅**\n\n**Title:** ${postTitle}\n**Status:** ${post.status || params.status}\n**Post ID:** ${postId}\n**URL:** ${postUrl}\n**Tags:** ${Array.isArray(postTags) ? postTags.join(', ') : 'None'}\n**Featured:** ${post.featured !== undefined ? (post.featured ? 'Yes' : 'No') : (params.featured ? 'Yes' : 'No')}\n${post.feature_image ? `**Feature Image:** Generated successfully` : ''}\n\n**Excerpt:**\n${postExcerpt}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ Your post is now ${(post.status || params.status) === 'published' ? 'live' : 'saved as draft'}!`}`
+					text: `**${contentType} ${params.is_test ? 'Test Completed' : 'Created Successfully'}! ✅**\n\n**Title:** ${postTitle}\n**Type:** ${params.post_type || 'post'}\n**Status:** ${post.status || params.status}\n**${contentType} ID:** ${postId}\n**URL:** ${postUrl}\n${params.post_type !== 'page' ? `**Tags:** ${Array.isArray(postTags) ? postTags.join(', ') : 'None'}\n**Featured:** ${post.featured !== undefined ? (post.featured ? 'Yes' : 'No') : (params.featured ? 'Yes' : 'No')}\n` : ''}${post.feature_image ? `**Feature Image:** Generated successfully` : ''}\n\n**Excerpt:**\n${postExcerpt}\n\n${params.is_test ? `⚠️ Test mode - no actual ${contentType.toLowerCase()} was created` : `✨ Your ${contentType.toLowerCase()} is now ${(post.status || params.status) === 'published' ? 'live' : 'saved as draft'}!`}`
 				}]
 			};
 		}
@@ -213,12 +215,13 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 	// Tool 4: Smart Create
 	server.tool(
 		"ghost_smart_create",
-		"Create a blog post using AI to enhance your input. Provide notes or ideas, and AI will generate a complete post with title, content, and tags. Uses Google Gemini for content generation. You can specify ghost_admin_api_key and ghost_api_url to post to a different blog.",
+		"Create a blog post or page using AI to enhance your input. Provide notes or ideas, and AI will generate a complete post/page with title, content, and tags. Uses Google Gemini for content generation. You can specify ghost_admin_api_key and ghost_api_url to post to a different blog.",
 		{
-			user_input: z.string().min(1).describe("Your ideas, notes, or topic to be enhanced by AI into a full blog post"),
-			status: z.enum(["draft", "published"]).default("draft").describe("Post status after creation"),
+			user_input: z.string().min(1).describe("Your ideas, notes, or topic to be enhanced by AI into a full blog post or page"),
+			post_type: z.enum(["post", "page"]).default("post").describe("Type: 'post' for blog posts, 'page' for static pages like About, Contact, etc."),
+			status: z.enum(["draft", "published"]).default("draft").describe("Post/page status after creation"),
 			preferred_language: z.string().default("English").describe("Language for the generated content"),
-			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post"),
+			is_test: z.boolean().default(true).describe("Test mode - simulate without creating real post/page"),
 			ghost_admin_api_key: z.string().optional().describe("Optional: Override default Ghost Admin API Key to post to a different blog"),
 			ghost_api_url: z.string().optional().describe("Optional: Override default Ghost blog URL to post to a different blog")
 		},
@@ -248,11 +251,12 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			const postTitle = post.generated_title || post.rewritten_data?.title || 'AI-generated title';
 			const postTags = post.generated_tags || post.rewritten_data?.tags || [];
 			const postExcerpt = post.generated_excerpt || post.rewritten_data?.excerpt || 'AI-generated excerpt';
+			const contentType = params.post_type === 'page' ? 'Page' : 'Post';
 			
 			return {
 				content: [{
 					type: "text",
-					text: `**AI-Enhanced Post ${params.is_test ? 'Test Completed' : 'Created'}! 🤖✅**\n\n**Title:** ${postTitle}\n**Status:** ${post.status || params.status}\n**Post ID:** ${postId}\n**URL:** ${postUrl}\n**Tags:** ${Array.isArray(postTags) ? postTags.join(', ') : 'AI-generated'}\n**Language:** ${params.preferred_language}\n\n**AI-Generated Excerpt:**\n${postExcerpt}\n\n${params.is_test ? '⚠️ Test mode - no actual post was created' : `✨ AI has transformed your ideas into a ${(post.status || params.status) === 'published' ? 'live post' : 'draft'}!`}\n\n**Original Input:**\n"${params.user_input}"`
+					text: `**AI-Enhanced ${contentType} ${params.is_test ? 'Test Completed' : 'Created'}! 🤖✅**\n\n**Title:** ${postTitle}\n**Type:** ${params.post_type || 'post'}\n**Status:** ${post.status || params.status}\n**${contentType} ID:** ${postId}\n**URL:** ${postUrl}\n${params.post_type !== 'page' ? `**Tags:** ${Array.isArray(postTags) ? postTags.join(', ') : 'AI-generated'}\n` : ''}**Language:** ${params.preferred_language}\n\n**AI-Generated Excerpt:**\n${postExcerpt}\n\n${params.is_test ? `⚠️ Test mode - no actual ${contentType.toLowerCase()} was created` : `✨ AI has transformed your ideas into a ${(post.status || params.status) === 'published' ? `live ${contentType.toLowerCase()}` : 'draft'}!`}\n\n**Original Input:**\n"${params.user_input}"`
 				}]
 			};
 		}
