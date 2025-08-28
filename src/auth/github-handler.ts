@@ -96,25 +96,35 @@ app.get("/callback", async (c) => {
 	const user = await new Octokit({ auth: accessToken }).rest.users.getAuthenticated();
 	const { login, name, email } = user.data;
 
-	// SECURITY: Only allow specific user to access this MCP server
-	const AUTHORIZED_USER = 'preangelleo';
-	if (login !== AUTHORIZED_USER) {
-		console.log(`Access denied for user: ${login}. Only ${AUTHORIZED_USER} is authorized.`);
-		return new Response(
-			`<html><body>
-				<h1>Access Denied</h1>
-				<p>Sorry, this MCP server is private and only accessible to the owner.</p>
-				<p>User <strong>${login}</strong> is not authorized to access this service.</p>
-				<p>If you believe this is an error, please contact the server administrator.</p>
-			</body></html>`, 
-			{
-				status: 403,
-				headers: { 'Content-Type': 'text/html' }
-			}
-		);
+	// Check authorization based on AUTHORIZED_USERS environment variable
+	// If AUTHORIZED_USERS is not set or empty, allow all authenticated users (public mode)
+	// If AUTHORIZED_USERS is set, only allow listed users (private mode)
+	const authorizedUsersStr = c.env.AUTHORIZED_USERS?.trim();
+	
+	if (authorizedUsersStr) {
+		// Private mode: check if user is in the allowed list
+		const authorizedUsers = authorizedUsersStr.split(',').map(u => u.trim()).filter(u => u);
+		
+		if (!authorizedUsers.includes(login)) {
+			console.log(`Access denied for user: ${login}. Authorized users: ${authorizedUsers.join(', ')}`);
+			return new Response(
+				`<html><body>
+					<h1>Access Denied</h1>
+					<p>Sorry, this MCP server is private and only accessible to authorized users.</p>
+					<p>User <strong>${login}</strong> is not authorized to access this service.</p>
+					<p>If you believe this is an error, please contact the server administrator.</p>
+				</body></html>`, 
+				{
+					status: 403,
+					headers: { 'Content-Type': 'text/html' }
+				}
+			);
+		}
+		console.log(`Access granted for authorized user: ${login} (private mode)`);
+	} else {
+		// Public mode: allow all authenticated GitHub users
+		console.log(`Access granted for authenticated user: ${login} (public mode)`);
 	}
-
-	console.log(`Access granted for authorized user: ${login}`);
 
 	// Return back to the MCP client a new token
 	const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({

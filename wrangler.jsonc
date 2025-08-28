@@ -62,6 +62,17 @@
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 * 
+	 * Required secrets (set with wrangler secret put):
+	 * - GITHUB_CLIENT_ID: GitHub OAuth App Client ID
+	 * - GITHUB_CLIENT_SECRET: GitHub OAuth App Client Secret
+	 * - COOKIE_ENCRYPTION_KEY: 64-char hex key for session encryption (must match Ghost Blog API key)
+	 * 
+	 * Optional secrets:
+	 * - AUTHORIZED_USERS: Comma-separated GitHub usernames for private mode (e.g., "user1,user2")
+	 *                     Leave empty or unset for public mode (all GitHub users allowed)
+	 * - CUSTOM_GHOST_ADMIN_API_KEY: Override default Ghost blog (Priority Level 2)
+	 * - CUSTOM_GHOST_API_URL: Override default Ghost blog URL (Priority Level 2)
 	 */
 
 	/**

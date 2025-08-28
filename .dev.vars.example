@@ -31,3 +31,17 @@ NODE_ENV=development
 # Uncomment and set these to use a specific Ghost blog for this worker
 # CUSTOM_GHOST_ADMIN_API_KEY=your_ghost_admin_key_here
 # CUSTOM_GHOST_API_URL=https://your-ghost-blog.com
+
+# ===== AUTHORIZATION CONTROL =====
+# Control who can access this MCP server
+# 
+# Option 1: Private Mode - Only specific GitHub users can access
+#   Set to comma-separated GitHub usernames: "user1,user2,user3"
+#   Example: AUTHORIZED_USERS=preangelleo
+#
+# Option 2: Public Mode - All authenticated GitHub users can access
+#   Leave empty or don't set the variable
+#   Example: AUTHORIZED_USERS=
+#
+# For production, it's recommended to use private mode for security
+# AUTHORIZED_USERS=

@@ -17,6 +17,10 @@ declare namespace Cloudflare {
 		// Optional custom Ghost blog credentials for Worker-level configuration
 		CUSTOM_GHOST_ADMIN_API_KEY?: string;
 		CUSTOM_GHOST_API_URL?: string;
+		// Optional authorized users list - comma separated GitHub usernames
+		// If empty or not set, server is open to all authenticated GitHub users
+		// Example: "preangelleo,user2,user3"
+		AUTHORIZED_USERS?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

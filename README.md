@@ -24,7 +24,9 @@ Manage unlimited Ghost blogs from a single MCP server. Switch between blogs dyna
 Create both blog posts and static pages (About, Contact, etc.) with the new `post_type` parameter support.
 
 ### 🔐 **Enterprise-Grade Security**
-- GitHub OAuth authentication with single-user restriction
+- GitHub OAuth authentication with flexible access control
+- Private mode: Restrict to specific GitHub users
+- Public mode: Allow all authenticated GitHub users  
 - Three-level credential priority system
 - HMAC-signed session management
 - No hardcoded secrets
@@ -116,18 +118,28 @@ GITHUB_CLIENT_SECRET=your_github_client_secret
 COOKIE_ENCRYPTION_KEY=your_api_key  # Must match Ghost Blog Smart API
 ```
 
-### Step 5: Update Configuration
+### Step 5: Configure Authorization
 
-Edit `src/tools/ghost-blog-tools.ts`:
+Choose your access control mode in `.dev.vars`:
 
+**Option 1: Private Mode** (Recommended for production)
+```env
+# Only specific GitHub users can access
+AUTHORIZED_USERS=your-github-username
+# For multiple users: AUTHORIZED_USERS=user1,user2,user3
+```
+
+**Option 2: Public Mode**
+```env
+# All authenticated GitHub users can access
+AUTHORIZED_USERS=
+# Or simply don't set the variable
+```
+
+Update the Ghost Blog API URL in `src/tools/ghost-blog-tools.ts` if needed:
 ```typescript
-// Line 4: Your Ghost Blog Smart API URL
+// Line 6: Your Ghost Blog Smart API URL
 const API_BASE_URL = 'http://localhost:5000';  // or your production URL
-
-// Lines 5-7: Your GitHub username for exclusive access
-const ALLOWED_USERNAMES = new Set<string>([
-  'your-github-username'  // Replace with YOUR username
-]);
 ```
 
 ### Step 6: Start Development Server
@@ -260,6 +272,11 @@ wrangler secret put GITHUB_CLIENT_ID
 wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put COOKIE_ENCRYPTION_KEY
 
+# Optional: Set authorization control
+# For private mode (specific users only):
+wrangler secret put AUTHORIZED_USERS  # Enter: "user1,user2,user3"
+# For public mode (all GitHub users), don't set this or set empty
+
 # Optional: Set custom Ghost blog (Level 2)
 wrangler secret put CUSTOM_GHOST_ADMIN_API_KEY
 wrangler secret put CUSTOM_GHOST_API_URL
@@ -296,7 +313,9 @@ wrangler secret put CUSTOM_GHOST_API_URL
 ## 🔒 Security Features
 
 - **GitHub OAuth 2.0**: Industry-standard authentication
-- **Single-User Mode**: Restrict access to your GitHub account only
+- **Flexible Access Control**: 
+  - Private Mode: Restrict to specific GitHub users
+  - Public Mode: Allow all authenticated GitHub users
 - **Signed Cookies**: HMAC-SHA256 session security
 - **Environment Variables**: No hardcoded secrets
 - **API Key Protection**: Separate keys for each service
@@ -309,7 +328,7 @@ wrangler secret put CUSTOM_GHOST_API_URL
 | Issue | Solution |
 |-------|----------|
 | "Ghost Blog Smart API not reachable" | Verify Docker container is running: `docker ps` |
-| "Unauthorized access" | Update `ALLOWED_USERNAMES` with your GitHub username |
+| "Unauthorized access" | Check `AUTHORIZED_USERS` environment variable - add your GitHub username or leave empty for public |
 | "API key mismatch" | Ensure `COOKIE_ENCRYPTION_KEY` matches Ghost Blog Smart |
 | "Tools not appearing in Claude" | Restart Claude Desktop after configuration |
 | "Timeout errors" | API has 5-minute default timeout, check network |

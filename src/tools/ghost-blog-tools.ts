@@ -2,10 +2,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { Props } from "../types";
 
-const ALLOWED_USERNAMES = new Set<string>([
-	'preangelleo'   // Only authorized user - project owner
-]);
-
 // Ghost Blog Smart API base URL
 const API_BASE_URL = 'https://animagent.ai/ghost-blog-api';
 const GHOST_BLOG_API_KEY = '1fc21aec-7246-48c5-acef-d4743485de01'; // Should match COOKIE_ENCRYPTION_KEY in Worker
@@ -92,10 +88,23 @@ async function callGhostBlogApi(
 
 
 export function registerGhostBlogTools(server: McpServer, env: Env, props: Props) {
-	// Only register tools for authorized users
-	if (!ALLOWED_USERNAMES.has(props.login)) {
-		console.log(`User ${props.login} is not authorized to use Ghost Blog tools`);
-		return;
+	// Check authorization based on AUTHORIZED_USERS environment variable
+	// If AUTHORIZED_USERS is not set or empty, allow all authenticated users (public mode)
+	// If AUTHORIZED_USERS is set, only allow listed users (private mode)
+	const authorizedUsersStr = env.AUTHORIZED_USERS?.trim();
+	
+	if (authorizedUsersStr) {
+		// Private mode: check if user is in the allowed list
+		const authorizedUsers = authorizedUsersStr.split(',').map(u => u.trim()).filter(u => u);
+		
+		if (!authorizedUsers.includes(props.login)) {
+			console.log(`User ${props.login} is not authorized to use Ghost Blog tools. Authorized users: ${authorizedUsers.join(', ')}`);
+			return;
+		}
+		console.log(`Tools registered for authorized user: ${props.login} (private mode)`);
+	} else {
+		// Public mode: allow all authenticated GitHub users
+		console.log(`Tools registered for authenticated user: ${props.login} (public mode)`);
 	}
 
 	// Tool 1: Health Check
