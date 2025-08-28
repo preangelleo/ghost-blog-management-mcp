@@ -12,3 +12,22 @@ COOKIE_ENCRYPTION_KEY=your_64_character_hex_encryption_key_here
 
 # Development Environment
 NODE_ENV=development
+
+# ===== THREE-LEVEL PRIORITY SYSTEM FOR GHOST CREDENTIALS =====
+# 
+# Priority 1 (Highest): LLM-provided parameters in tool calls
+#   - ghost_admin_api_key and ghost_api_url passed directly to tools
+#   - Use case: Dynamic blog selection via My Credentials MCP
+#
+# Priority 2 (Middle): Worker environment variables below
+#   - Set these to override backend's default Ghost blog
+#   - Use case: Deploy multiple workers for different blogs
+#
+# Priority 3 (Lowest): Backend API server defaults
+#   - No configuration needed, uses server's configured blog
+#   - Use case: Simple deployment with single blog
+#
+# Optional: Custom Ghost Blog Credentials (Priority Level 2)
+# Uncomment and set these to use a specific Ghost blog for this worker
+# CUSTOM_GHOST_ADMIN_API_KEY=your_ghost_admin_key_here
+# CUSTOM_GHOST_API_URL=https://your-ghost-blog.com

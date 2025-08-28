@@ -58,6 +58,22 @@ Claude Desktop → Content Creation MCP → Ghost Blog Smart API → Ghost CMS
 - **API Key Protection**: Environment-based configuration
 - **Signed Cookies**: HMAC-secured session management
 
+### 🎯 Three-Level Ghost Credential Priority System
+1. **LLM Parameters** (Highest Priority)
+   - Pass `ghost_admin_api_key` and `ghost_api_url` directly to any tool
+   - Perfect for dynamic blog selection with My Credentials MCP
+   - Overrides all other configurations
+   
+2. **Worker Environment Variables** (Middle Priority)
+   - Set `CUSTOM_GHOST_ADMIN_API_KEY` and `CUSTOM_GHOST_API_URL` 
+   - Configure once for the entire Worker deployment
+   - Use different Workers for different blogs
+   
+3. **Backend API Defaults** (Lowest Priority)
+   - No configuration needed
+   - Uses Ghost Blog Smart API's default blog
+   - Simplest deployment option
+
 ## 🛠️ Available MCP Tools (13 Total)
 
 1. **`ghost_health_check`** - Check API status and version
@@ -212,6 +228,10 @@ wrangler deploy
 wrangler secret put GITHUB_CLIENT_ID
 wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put COOKIE_ENCRYPTION_KEY
+
+# Optional: Set custom Ghost blog credentials (Priority Level 2)
+wrangler secret put CUSTOM_GHOST_ADMIN_API_KEY
+wrangler secret put CUSTOM_GHOST_API_URL
 ```
 
 ## 🔌 Claude Desktop Integration
@@ -269,6 +289,12 @@ wrangler dev
 "Use ghost_update_post to change post ID abc123 status to published"
 ```
 
+### Dynamic Blog Selection (Priority Level 1)
+```
+"Get the Sumatman blog credentials from my-credentials database, then use ghost_create_post to publish there"
+"Use ghost_create_post with ghost_admin_api_key='key:secret' and ghost_api_url='https://blog.example.com' to post to a specific blog"
+```
+
 ## 🏗️ Architecture
 
 ```
@@ -324,10 +350,11 @@ const GHOST_BLOG_API_KEY = 'your-production-api-key';
 
 ### Timeouts
 
-Some operations require extended timeouts:
-- Image generation: 5 minutes (300 seconds)
-- Smart create: 1 minute (60 seconds)
-- Standard operations: 30 seconds
+**Important Update**: All operations now have a 5-minute (300 seconds) default timeout to handle image generation and AI processing without interruption. This prevents timeout errors when:
+- Generating AI feature images (60-300 seconds)
+- Using Smart Create with content generation (30-60 seconds)
+- Processing large batch operations
+- Slow network conditions
 
 ## 🧪 Testing
 

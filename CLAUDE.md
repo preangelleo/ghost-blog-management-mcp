@@ -56,9 +56,30 @@ GITHUB_CLIENT_SECRET=fafa8251f0ce06bff60e9aa7c5d19b699c41dca0
 # API Authentication (Required)
 COOKIE_ENCRYPTION_KEY=1fc21aec-7246-48c5-acef-d4743485de01  # Must match Ghost Blog API key
 
+# Optional: Worker-level Ghost Blog Configuration (Priority Level 2)
+CUSTOM_GHOST_ADMIN_API_KEY=your_ghost_admin_key_here
+CUSTOM_GHOST_API_URL=https://your-ghost-blog.com
+
 # Development
 NODE_ENV=development
 ```
+
+### Three-Level Ghost Credential Priority System
+
+1. **Priority 1 (Highest)**: LLM-provided parameters
+   - `ghost_admin_api_key` and `ghost_api_url` in tool parameters
+   - Used for dynamic blog selection
+   - Overrides all other configurations
+
+2. **Priority 2 (Middle)**: Worker environment variables
+   - `CUSTOM_GHOST_ADMIN_API_KEY` and `CUSTOM_GHOST_API_URL`
+   - Set once for entire Worker deployment
+   - Used when no LLM parameters provided
+
+3. **Priority 3 (Lowest)**: Backend API defaults
+   - Ghost Blog Smart API's configured blog
+   - No additional configuration needed
+   - Simplest deployment option
 
 ### Backend API Configuration
 
@@ -108,7 +129,10 @@ server.tool(
     tags: z.array(z.string()).optional(),
     use_generated_feature_image: z.boolean().optional(),
     prefer_flux: z.boolean().optional(),
-    is_test: z.boolean().optional()
+    is_test: z.boolean().optional(),
+    // Optional credential override parameters (Priority Level 1)
+    ghost_admin_api_key: z.string().optional().describe("Override default Ghost Admin API Key"),
+    ghost_api_url: z.string().optional().describe("Override default Ghost blog URL")
   },
   async (args) => {
     // Validate user permissions
@@ -315,7 +339,10 @@ wrangler tail
 
 ### Production Considerations
 
-- **API Timeouts**: Extended timeouts for image generation (300s)
+- **API Timeouts**: Default 5-minute (300s) timeout for all operations
+  - Prevents timeouts during image generation (60-300s)
+  - Handles AI content generation without interruption
+  - Accommodates slow network conditions
 - **Rate Limiting**: Respect Ghost CMS and AI provider limits
 - **Error Handling**: Always return user-friendly error messages
 - **Test Mode**: Use `is_test: true` for safe experimentation
