@@ -295,7 +295,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const posts = result.data || [];
+			const posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
 			if (posts.length === 0) {
 				return {
 					content: [{
@@ -355,7 +355,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const posts = result.data || [];
+			const posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
 			if (posts.length === 0) {
 				return {
 					content: [{
@@ -609,7 +609,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const posts = result.data || [];
+			const posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
 			if (posts.length === 0) {
 				return {
 					content: [{
@@ -665,7 +665,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const posts = result.data || [];
+			const posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
 			if (posts.length === 0) {
 				return {
 					content: [{
