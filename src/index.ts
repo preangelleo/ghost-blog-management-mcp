@@ -8,7 +8,7 @@ import { registerAllTools } from "./tools/register-tools";
 export class MyMCP extends McpAgent<Env, Record<string, never>, Props> {
 	server = new McpServer({
 		name: "Ghost Blog Management",
-		version: "2.0.0",
+		version: "2.1.0",
 	});
 
 	async init() {

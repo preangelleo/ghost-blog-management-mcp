@@ -4,7 +4,7 @@ import { Props } from "../types";
 
 // Ghost Blog Smart API base URL
 const API_BASE_URL = 'https://animagent.ai/ghost-blog-api';
-const GHOST_BLOG_API_KEY = '1fc21aec-7246-48c5-acef-d4743485de01'; // Should match COOKIE_ENCRYPTION_KEY in Worker
+const GHOST_BLOG_API_KEY = '1fc21aec-7246-48c5-acef-d4743485de01'; // MCP API key (unchanged)
 
 // Removed ApiResponse interface as it's not used anymore
 // The API returns data directly which we wrap in our own structure
@@ -254,7 +254,17 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			}
 
 			const post = result.data || {};
-			// Handle the smart-create response structure
+			// Handle the smart-create response structure with better error handling
+			if (!post || typeof post !== 'object') {
+				return {
+					content: [{
+						type: "text",
+						text: `**Invalid response from API**\n\nReceived invalid post data: ${JSON.stringify(post)}`,
+						isError: true
+					}]
+				};
+			}
+			
 			const postUrl = post.url || (params.is_test ? 'Test mode URL' : 'URL not available');
 			const postId = post.post_id || (params.is_test ? 'test-id' : 'Unknown');
 			const postTitle = post.generated_title || post.rewritten_data?.title || 'AI-generated title';
@@ -422,10 +432,36 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			}
 
 			const post = result.data;
+			
+			// Validate post data
+			if (!post || typeof post !== 'object') {
+				return {
+					content: [{
+						type: "text",
+						text: `**Invalid post data received**\n\nAPI returned: ${JSON.stringify(result)}\n\nPlease check the post ID and try again.`,
+						isError: true
+					}]
+				};
+			}
+			
+			// Extract data with fallbacks
+			const title = post.title || 'Untitled';
+			const id = post.id || post_id;
+			const status = post.status || 'unknown';
+			const featured = post.featured ? ' ⭐ Featured' : '';
+			const url = post.url || 'Not available';
+			const tags = Array.isArray(post.tags) ? post.tags.join(', ') : (post.tags || 'None');
+			const created_at = post.created_at || 'Unknown';
+			const updated_at = post.updated_at || 'Unknown';
+			const published_at = post.published_at || 'Not published';
+			const excerpt = post.excerpt || 'No excerpt';
+			const content = post.content ? post.content.substring(0, 500) + '...' : 'No content';
+			const feature_image = post.feature_image ? '**Feature Image:** ' + post.feature_image : '**Feature Image:** None';
+			
 			return {
 				content: [{
 					type: "text",
-					text: `**Post Details**\n\n**Title:** ${post.title}\n**ID:** ${post.id}\n**Status:** ${post.status}${post.featured ? ' ⭐ Featured' : ''}\n**URL:** ${post.url || 'Not available'}\n**Tags:** ${post.tags?.join(', ') || 'None'}\n**Created:** ${post.created_at}\n**Updated:** ${post.updated_at}\n**Published:** ${post.published_at || 'Not published'}\n\n**Excerpt:**\n${post.excerpt || 'No excerpt'}\n\n**Content Preview:**\n${post.content ? post.content.substring(0, 500) + '...' : 'No content'}\n\n${post.feature_image ? '**Feature Image:** ' + post.feature_image : '**Feature Image:** None'}`
+					text: `**Post Details**\n\n**Title:** ${title}\n**ID:** ${id}\n**Status:** ${status}${featured}\n**URL:** ${url}\n**Tags:** ${tags}\n**Created:** ${created_at}\n**Updated:** ${updated_at}\n**Published:** ${published_at}\n\n**Excerpt:**\n${excerpt}\n\n**Content Preview:**\n${content}\n\n${feature_image}`
 				}]
 			};
 		}
@@ -624,12 +660,38 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
-			if (posts.length === 0) {
+			// Critical fix for ghost_batch_get_details JavaScript runtime error
+			let posts;
+			try {
+				posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
+				
+				// Type validation - ensure posts is an array before calling .map()
+				if (!Array.isArray(posts)) {
+					console.error('Batch get details: posts is not an array:', typeof posts, posts);
+					return {
+						content: [{
+							type: "text",
+							text: `**Invalid API response format**\n\nExpected array of posts, got: ${typeof posts}\n\nRaw response: ${JSON.stringify(result.data)}`,
+							isError: true
+						}]
+					};
+				}
+				
+				if (posts.length === 0) {
+					return {
+						content: [{
+							type: "text",
+							text: `**No posts found**\n\nThe provided post IDs may be invalid or deleted.`
+						}]
+					};
+				}
+			} catch (error) {
+				console.error('Error processing batch get details response:', error);
 				return {
 					content: [{
 						type: "text",
-						text: `**No posts found**\n\nThe provided post IDs may be invalid or deleted.`
+						text: `**Error processing response**\n\n${error instanceof Error ? error.message : String(error)}\n\nRaw API response: ${JSON.stringify(result)}`,
+						isError: true
 					}]
 				};
 			}

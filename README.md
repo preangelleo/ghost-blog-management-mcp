@@ -1,95 +1,44 @@
-# 🚀 Ghost Blog Management MCP Server
+# 📝 Ghost Blog Management MCP Server
 
-[![MCP Protocol](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-blue)](https://modelcontextprotocol.io/)
-[![Cloudflare Workers](https://img.shields.io/badge/Deployed%20on-Cloudflare%20Workers-orange)](https://workers.cloudflare.com/)
-[![Ghost CMS](https://img.shields.io/badge/Ghost%20CMS-5.0%2B-black)](https://ghost.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+**AI-Powered Content Creation & Management for Ghost CMS through Claude Desktop**
 
-**Transform your Ghost CMS workflow with AI-powered content management directly from Claude Desktop.**
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/preangelleo/ghost-blog-management-mcp/releases)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Cloudflare Workers](https://img.shields.io/badge/platform-Cloudflare%20Workers-orange.svg)](https://workers.cloudflare.com/)
+[![Model Context Protocol](https://img.shields.io/badge/protocol-MCP-purple.svg)](https://modelcontextprotocol.io/)
 
-This MCP server brings the full power of Ghost Blog Smart API to Claude, enabling you to create AI-enhanced blog posts, generate stunning feature images, and manage multiple Ghost blogs - all through natural conversation.
+## 🎯 Overview
 
-## ✨ Why This MCP Server?
+Transform your Ghost CMS workflow with AI-powered content creation directly from Claude Desktop. This Model Context Protocol (MCP) server enables seamless blog management, automated content generation, and intelligent image creation for your Ghost blogs.
 
-### 🎯 **Multi-Blog Management**
-Manage unlimited Ghost blogs from a single MCP server. Switch between blogs dynamically by providing credentials, perfect for agencies and content creators managing multiple properties.
+### ✨ Key Features
 
-### 🤖 **AI-First Content Creation**
-- **Smart Create**: Transform rough notes into polished blog posts with Google Gemini
-- **Dual Image Generation**: Choose between ultra-fast Flux (3-7s) or professional Imagen (10-15s)
-- **Auto Enhancement**: Generate titles, excerpts, and tags automatically
-- **Multi-language Support**: Create content in any language
-
-### 📝 **Support for Posts AND Pages**
-Create both blog posts and static pages (About, Contact, etc.) with the new `post_type` parameter support.
-
-### 🔐 **Enterprise-Grade Security**
-- GitHub OAuth authentication with flexible access control
-- Private mode: Restrict to specific GitHub users
-- Public mode: Allow all authenticated GitHub users  
-- Three-level credential priority system
-- HMAC-signed session management
-- No hardcoded secrets
+- **🤖 AI Content Creation**: Generate complete blog posts from simple ideas using Google Gemini
+- **🎨 Automatic Image Generation**: Create stunning feature images with Replicate Flux or Google Imagen
+- **📝 Complete Blog Management**: Create, update, search, and manage posts through 13 powerful tools
+- **🔐 Secure Authentication**: GitHub OAuth 2.0 with configurable access control
+- **🌐 Multi-Blog Support**: Manage multiple Ghost blogs with three-level credential priority
+- **⚡ Cloudflare Workers**: Global edge deployment with zero cold starts
+- **🧪 Test Mode**: Safe experimentation without creating real posts
 
 ## 🏗️ Architecture
 
-```mermaid
-graph LR
-    A[Claude Desktop] -->|MCP Protocol| B[Ghost Blog MCP Server]
-    B -->|REST API| C[Ghost Blog Smart API]
-    C -->|Admin API| D[Ghost CMS]
-    
-    B -.->|OAuth| E[GitHub]
-    C -.->|AI| F[Google Gemini]
-    C -.->|Images| G[Flux/Imagen]
-    
-    style A fill:#FFE6CC
-    style B fill:#D4FFD4
-    style C fill:#D4E4FF
-    style D fill:#E8E8E8
 ```
-
-## 🛠️ Complete Tool Suite (13 Tools)
-
-| Tool | Description | AI Features |
-|------|-------------|-------------|
-| `ghost_health_check` | Check API status and health | - |
-| `ghost_api_info` | Get API capabilities and version | - |
-| **`ghost_create_post`** | Create posts/pages with optional AI images | 🎨 Flux/Imagen |
-| **`ghost_smart_create`** | Transform ideas into complete posts | 🤖 Gemini + 🎨 |
-| `ghost_get_posts` | List posts with filters | - |
-| `ghost_advanced_search` | Search posts by text, tags, dates | - |
-| `ghost_get_post_details` | Get complete post information | - |
-| `ghost_update_post` | Update post content/metadata | - |
-| **`ghost_update_post_image`** | Generate new AI feature image | 🎨 Flux/Imagen |
-| `ghost_delete_post` | Delete posts permanently | - |
-| `ghost_posts_summary` | Analytics and statistics | - |
-| `ghost_batch_get_details` | Efficient batch operations | - |
-| `ghost_search_by_date` | Find posts by date patterns | - |
+Claude Desktop → Ghost Blog MCP (Cloudflare Workers) → Ghost Blog Smart API → Ghost CMS
+                 │                                      │
+                 └── GitHub OAuth                       └── AI Services (Gemini, Replicate)
+```
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-1. **Ghost Blog** with Admin API access
-2. **Ghost Blog Smart API** deployed ([Instructions](https://github.com/preangelleo/ghost-blog-smart))
-3. **Cloudflare account** (free tier works)
-4. **GitHub account** for OAuth
+- [Node.js](https://nodejs.org/) (v18+)
+- [Cloudflare Account](https://dash.cloudflare.com/sign-up)
+- [GitHub OAuth App](https://github.com/settings/developers)
+- [Claude Desktop](https://claude.ai/download)
 
-### Step 1: Deploy Ghost Blog Smart API
-
-```bash
-# Quick start with Docker
-docker run -d -p 5000:5000 \
-  -e GHOST_ADMIN_API_KEY=your_ghost_key \
-  -e GHOST_API_URL=https://your-blog.com \
-  -e GEMINI_API_KEY=your_gemini_key \
-  -e REPLICATE_API_TOKEN=your_replicate_token \
-  --name ghost-blog-api \
-  betashow/ghost-blog-smart-api
-```
-
-### Step 2: Clone and Configure
+### 1. Installation
 
 ```bash
 git clone https://github.com/preangelleo/ghost-blog-management-mcp.git
@@ -97,67 +46,160 @@ cd ghost-blog-management-mcp
 npm install
 ```
 
-### Step 3: Setup GitHub OAuth
-
-Create a [GitHub OAuth App](https://github.com/settings/developers):
-
-- **Application name**: Ghost Blog Management
-- **Homepage URL**: `http://localhost:8792`
-- **Callback URL**: `http://localhost:8792/callback`
-
-### Step 4: Configure Environment
+### 2. Configuration
 
 ```bash
+# Copy environment template
 cp .dev.vars.example .dev.vars
+
+# Edit .dev.vars with your credentials
+# See Configuration section below for details
 ```
 
-Edit `.dev.vars`:
-```env
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-COOKIE_ENCRYPTION_KEY=your_api_key  # Must match Ghost Blog Smart API
-```
-
-### Step 5: Configure Authorization
-
-Choose your access control mode in `.dev.vars`:
-
-**Option 1: Private Mode** (Recommended for production)
-```env
-# Only specific GitHub users can access
-AUTHORIZED_USERS=your-github-username
-# For multiple users: AUTHORIZED_USERS=user1,user2,user3
-```
-
-**Option 2: Public Mode**
-```env
-# All authenticated GitHub users can access
-AUTHORIZED_USERS=
-# Or simply don't set the variable
-```
-
-Update the Ghost Blog API URL in `src/tools/ghost-blog-tools.ts` if needed:
-```typescript
-// Line 6: Your Ghost Blog Smart API URL
-const API_BASE_URL = 'http://localhost:5000';  // or your production URL
-```
-
-### Step 6: Start Development Server
+### 3. Development
 
 ```bash
+# Start development server
 npm run dev
 # Server runs at http://localhost:8792
+
+# Type checking
+npm run type-check
 ```
 
-### Step 7: Configure Claude Desktop
+### 4. Production Deployment
 
-Add to Claude Desktop settings:
+```bash
+# Install Wrangler CLI
+npm install -g wrangler
 
+# Login to Cloudflare
+wrangler login
+
+# Deploy to production
+npm run deploy
+
+# Set production secrets
+echo "your_github_client_id" | wrangler secret put GITHUB_CLIENT_ID
+echo "your_github_client_secret" | wrangler secret put GITHUB_CLIENT_SECRET
+echo "your_encryption_key" | wrangler secret put COOKIE_ENCRYPTION_KEY
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create `.dev.vars` from `.dev.vars.example` and configure:
+
+```bash
+# GitHub OAuth (Required)
+GITHUB_CLIENT_ID=your_github_client_id_here
+GITHUB_CLIENT_SECRET=your_github_client_secret_here
+
+# Cookie Encryption (Required)
+COOKIE_ENCRYPTION_KEY=your_64_character_hex_encryption_key_here
+
+# Authorization Control
+AUTHORIZED_USERS=your_github_username  # Private mode
+# AUTHORIZED_USERS=                     # Public mode (all GitHub users)
+
+# Optional: Override default Ghost blog
+# CUSTOM_GHOST_ADMIN_API_KEY=your_ghost_admin_key_here
+# CUSTOM_GHOST_API_URL=https://your-ghost-blog.com
+```
+
+### GitHub OAuth App Setup
+
+1. Go to [GitHub Settings > Developer settings > OAuth Apps](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Configure:
+   - **Application name**: Ghost Blog Management
+   - **Homepage URL**: 
+     - Development: `http://localhost:8792`
+     - Production: `https://your-worker-name.your-subdomain.workers.dev`
+   - **Authorization callback URL**: 
+     - Development: `http://localhost:8792/callback`
+     - Production: `https://your-worker-name.your-subdomain.workers.dev/callback`
+
+### Multi-Blog Management
+
+The system supports three levels of Ghost blog credential priority:
+
+1. **Priority 1 (Highest)**: LLM-provided parameters
+   ```javascript
+   ghost_create_post({
+     title: "My Post",
+     ghost_admin_api_key: "specific_blog_key",
+     ghost_api_url: "https://specific-blog.com"
+   })
+   ```
+
+2. **Priority 2 (Middle)**: Worker environment variables
+   ```bash
+   CUSTOM_GHOST_ADMIN_API_KEY=your_key
+   CUSTOM_GHOST_API_URL=https://your-blog.com
+   ```
+
+3. **Priority 3 (Lowest)**: Backend API defaults
+   - Uses the Ghost Blog Smart API's configured blog
+   - No additional configuration needed
+
+## 🛠️ Available Tools
+
+### Content Creation Tools (13 Total)
+
+| Tool | Purpose | AI Features | Test Mode |
+|------|---------|-------------|-----------|
+| `ghost_health_check` | API status verification | - | N/A |
+| `ghost_api_info` | System information | - | N/A |
+| `ghost_create_post` | Create posts/pages | 🎨 Image generation | ✅ |
+| `ghost_smart_create` | AI content creation | 🤖 Gemini + 🎨 Images | ✅ |
+| `ghost_get_posts` | List posts with filters | - | N/A |
+| `ghost_advanced_search` | Text & tag search | - | N/A |
+| `ghost_get_post_details` | Individual post data | - | N/A |
+| `ghost_update_post` | Modify existing posts | - | N/A |
+| `ghost_update_post_image` | AI image regeneration | 🎨 Flux/Imagen | N/A |
+| `ghost_delete_post` | Remove posts permanently | - | N/A |
+| `ghost_posts_summary` | Analytics & statistics | - | N/A |
+| `ghost_batch_get_details` | Bulk post retrieval | - | N/A |
+| `ghost_search_by_date` | Date-based filtering | - | N/A |
+
+### AI Features
+
+**Content Generation (Google Gemini)**:
+- Transform ideas into complete blog posts
+- Generate titles, excerpts, and tags
+- Multi-language support
+
+**Image Generation**:
+- **Replicate Flux**: Fast generation (3-7s)
+- **Google Imagen**: Professional quality (10-15s)
+- Multiple aspect ratios (16:9, 1:1, 9:16, 4:3, 3:2)
+- Automatic fallback between providers
+
+## 🔧 Claude Desktop Integration
+
+Add to your Claude Desktop configuration (`~/.claude/claude_desktop_config.json`):
+
+### Production Configuration
 ```json
 {
   "mcpServers": {
-    "ghost-blog": {
+    "ghost-blog-management": {
       "command": "npx",
+      "args": ["mcp-remote", "https://your-worker-name.your-subdomain.workers.dev/mcp"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Development Configuration
+```json
+{
+  "mcpServers": {
+    "ghost-blog-dev": {
+      "command": "npx", 
       "args": ["mcp-remote", "http://localhost:8792/mcp"],
       "env": {}
     }
@@ -165,233 +207,145 @@ Add to Claude Desktop settings:
 }
 ```
 
-## 💡 Advanced Features
+## 💡 Usage Examples
 
-### 🎯 Three-Level Credential System
+### Create a Blog Post with AI
 
-Perfect for managing multiple blogs:
-
-#### Level 1: Dynamic Selection (Highest Priority)
-```javascript
-// Pass credentials directly in tool parameters
-await ghost_create_post({
-  title: "My Post",
-  content: "Content here",
-  ghost_admin_api_key: "blog2_key",  // Override default
-  ghost_api_url: "https://blog2.com"  // Override default
-})
+```
+Create a blog post about "The Future of AI in 2025" with these requirements:
+- Make it engaging and informative
+- Include relevant tags
+- Generate a professional feature image
+- Publish as draft for review
 ```
 
-#### Level 2: Worker Configuration
-```bash
-# Set for entire Worker deployment
-wrangler secret put CUSTOM_GHOST_ADMIN_API_KEY
-wrangler secret put CUSTOM_GHOST_API_URL
+### Smart Content Creation
+
+```
+Use ghost_smart_create to write about:
+"How to optimize web performance with modern JavaScript frameworks"
+
+Preferred language: English
+Status: draft
+Include feature image: yes
 ```
 
-#### Level 3: Backend Defaults
-Uses Ghost Blog Smart API's configured blog - no additional setup needed.
+### Multi-Blog Management
 
-### 📄 Posts vs Pages Support
-
-```javascript
-// Create a blog post (default)
-await ghost_create_post({
-  title: "Blog Post Title",
-  content: "Blog content...",
-  post_type: "post"  // Optional, this is default
-})
-
-// Create a static page
-await ghost_create_post({
-  title: "About Us",
-  content: "Company information...",
-  post_type: "page"  // Creates a page instead of post
-})
+```
+Create a post on my personal blog:
+- Title: "My Journey with AI Tools"
+- Content: "Today I want to share..."
+- Ghost API Key: 68aaca1251d63700017fb41c:c43f244b1435...
+- Ghost URL: https://blog.mysite.com
 ```
 
-### 🎨 AI Image Generation Options
+## 🔐 Security Features
 
-```javascript
-// Ultra-fast generation with Flux (3-7 seconds)
-await ghost_create_post({
-  title: "My Post",
-  content: "Content",
-  use_generated_feature_image: true,
-  prefer_flux: true
-})
+- **GitHub OAuth 2.0**: Secure authentication flow
+- **Access Control**: Public/private mode configuration
+- **API Key Protection**: Environment variable management
+- **Signed Cookies**: HMAC-SHA256 signed sessions
+- **HTTPS Only**: All production endpoints use HTTPS
 
-// Professional quality with Imagen (10-15 seconds)
-await ghost_create_post({
-  title: "My Post",
-  content: "Content",
-  use_generated_feature_image: true,
-  prefer_imagen: true
-})
+## 📊 Performance
+
+| Operation | Typical Time | Max Time | Notes |
+|-----------|-------------|----------|-------|
+| Health Check | <1s | 5s | Simple API ping |
+| List Posts | 1-2s | 10s | Depends on filter complexity |
+| Create Post (no image) | 3-8s | 30s | AI content generation |
+| Create Post (Flux) | 10-20s | 60s | Fast image generation |
+| Create Post (Imagen) | 20-35s | 120s | Professional image quality |
+| Smart Create | 15-30s | 90s | Full AI enhancement |
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+/
+├── src/
+│   ├── index.ts                 # Main MCP server entry point
+│   ├── types.ts                 # TypeScript type definitions
+│   ├── auth/
+│   │   ├── github-handler.ts    # GitHub OAuth flow
+│   │   └── oauth-utils.ts       # OAuth utilities
+│   └── tools/
+│       ├── ghost-blog-tools.ts  # Ghost Blog API integration (13 tools)
+│       └── register-tools.ts    # Tool registration logic
+├── wrangler.jsonc               # Cloudflare Workers configuration
+├── package.json                 # Dependencies and scripts
+├── tsconfig.json               # TypeScript configuration
+└── DEPLOYMENT_GUIDE.md         # Detailed deployment instructions
 ```
 
-## 🌟 Usage Examples in Claude
-
-### Create AI-Enhanced Content
-```
-"Use ghost_smart_create to write a blog post about 'The Future of Remote Work in 2025' with a professional tone"
-```
-
-### Manage Multiple Blogs
-```
-"Get the Animagent blog credentials from my-credentials database, then use ghost_create_post to publish a new announcement there"
-```
-
-### Batch Operations
-```
-"Use ghost_advanced_search to find all posts tagged 'technology', then use ghost_batch_get_details to get their full content"
-```
-
-### Update with AI Images
-```
-"Use ghost_update_post_image on post ID abc123 to generate a new feature image using Imagen"
-```
-
-## 🚀 Production Deployment
-
-### Deploy to Cloudflare Workers
+### Available Scripts
 
 ```bash
-# Login to Cloudflare
-wrangler login
-
-# Create KV namespace for OAuth
-wrangler kv namespace create "OAUTH_KV"
-# Add the namespace_id to wrangler.jsonc
-
-# Deploy to production
-npm run deploy
-
-# Set production secrets
-wrangler secret put GITHUB_CLIENT_ID
-wrangler secret put GITHUB_CLIENT_SECRET
-wrangler secret put COOKIE_ENCRYPTION_KEY
-
-# Optional: Set authorization control
-# For private mode (specific users only):
-wrangler secret put AUTHORIZED_USERS  # Enter: "user1,user2,user3"
-# For public mode (all GitHub users), don't set this or set empty
-
-# Optional: Set custom Ghost blog (Level 2)
-wrangler secret put CUSTOM_GHOST_ADMIN_API_KEY
-wrangler secret put CUSTOM_GHOST_API_URL
+npm run dev          # Start development server
+npm run deploy       # Deploy to Cloudflare Workers
+npm run type-check   # TypeScript type checking
 ```
 
-### Update Claude Desktop for Production
+### Contributing
 
-```json
-{
-  "mcpServers": {
-    "ghost-blog": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://your-worker.workers.dev/mcp"],
-      "env": {}
-    }
-  }
-}
-```
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes
+4. Run tests: `npm run type-check`
+5. Commit: `git commit -m "Add feature"`
+6. Push: `git push origin feature-name`
+7. Open a Pull Request
 
-## 📊 Performance Metrics
+## 📚 Documentation
 
-| Operation | Typical Time | Max Time |
-|-----------|-------------|----------|
-| Create post (no image) | 2-5s | 10s |
-| Create post (with Flux) | 8-15s | 30s |
-| Create post (with Imagen) | 15-25s | 45s |
-| Smart create (AI content) | 10-20s | 60s |
-| Update post | 1-2s | 5s |
-| Search/List | <1s | 3s |
-| Batch operations | 2-5s | 15s |
+- **[Deployment Guide](DEPLOYMENT_GUIDE.md)**: Complete production deployment instructions
+- **[Model Context Protocol](https://modelcontextprotocol.io/)**: MCP specification
+- **[Ghost Admin API](https://ghost.org/docs/admin-api/)**: Ghost CMS API documentation
+- **[Cloudflare Workers](https://developers.cloudflare.com/workers/)**: Platform documentation
 
-*Note: All operations have a 5-minute timeout to ensure reliability*
-
-## 🔒 Security Features
-
-- **GitHub OAuth 2.0**: Industry-standard authentication
-- **Flexible Access Control**: 
-  - Private Mode: Restrict to specific GitHub users
-  - Public Mode: Allow all authenticated GitHub users
-- **Signed Cookies**: HMAC-SHA256 session security
-- **Environment Variables**: No hardcoded secrets
-- **API Key Protection**: Separate keys for each service
-- **Test Mode**: Safe experimentation with `is_test: true`
-
-## 🔍 Troubleshooting
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| "Ghost Blog Smart API not reachable" | Verify Docker container is running: `docker ps` |
-| "Unauthorized access" | Check `AUTHORIZED_USERS` environment variable - add your GitHub username or leave empty for public |
-| "API key mismatch" | Ensure `COOKIE_ENCRYPTION_KEY` matches Ghost Blog Smart |
-| "Tools not appearing in Claude" | Restart Claude Desktop after configuration |
-| "Timeout errors" | API has 5-minute default timeout, check network |
+| Issue | Symptoms | Solution |
+|-------|----------|----------|
+| **Authentication Failed** | 403 errors, "Unauthorized" | Check GitHub username in `AUTHORIZED_USERS` |
+| **API Connection Error** | 502/503 errors | Verify backend services are running |
+| **Tool Not Found** | MCP errors | Restart Claude Desktop, check config |
+| **Image Generation Timeout** | 5-minute timeouts | Use `prefer_flux=true` for faster generation |
 
 ### Debug Commands
 
 ```bash
-# Check development logs
-npm run dev
-
-# Production logs
+# Monitor production logs
 wrangler tail
 
-# Test Ghost Blog Smart API
-curl http://localhost:5000/health
+# Test health endpoint
+curl https://your-worker-name.your-subdomain.workers.dev/authorize
 
-# Test authentication
-open http://localhost:8792/authorize
+# Verify secrets
+wrangler secret list
 ```
 
-## 🤝 Contributing
+## 📜 License
 
-Contributions are welcome! Please:
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing`)
-5. Open a Pull Request
+## 🤝 Acknowledgments
 
-## 📚 Documentation
+- [Model Context Protocol](https://modelcontextprotocol.io/) by Anthropic
+- [Ghost CMS](https://ghost.org/) for the publishing platform
+- [Cloudflare Workers](https://workers.cloudflare.com/) for edge computing
+- [Replicate](https://replicate.com/) and [Google AI](https://ai.google.dev/) for AI services
 
-- [MCP Protocol Documentation](https://modelcontextprotocol.io/)
-- [Ghost Blog Smart API](https://github.com/preangelleo/ghost-blog-smart)
-- [Ghost Admin API](https://ghost.org/docs/admin-api/)
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details
-
-## 🙏 Acknowledgments
-
-- [Anthropic](https://anthropic.com) for Model Context Protocol
-- [Ghost](https://ghost.org/) for the amazing CMS platform
-- [Cloudflare](https://cloudflare.com) for Workers infrastructure
-- Google for Gemini AI and Imagen
-- [Replicate](https://replicate.com) for Flux image generation
-
-## 📞 Support
+## 📧 Support
 
 - **Issues**: [GitHub Issues](https://github.com/preangelleo/ghost-blog-management-mcp/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/preangelleo/ghost-blog-management-mcp/discussions)
-- **Email**: me@leowang.net
+- **Author**: [leowang.net](https://leowang.net) <me@leowang.net>
+- **Version**: 2.1.0
 
 ---
 
-<div align="center">
-
-**Built with ❤️ by [leowang.net](https://leowang.net)**
-
-Transform your content creation workflow with AI-powered Ghost CMS management
-
-[Get Started](#-quick-start) • [Documentation](#-documentation) • [Support](#-support)
-
-</div>
+**Made with ❤️ for the AI-powered content creation community**

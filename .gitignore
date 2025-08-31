@@ -229,4 +229,12 @@ local-secrets.*
 database-*.sql
 *.db.backup
 
+# Deployment guides and sensitive documentation
+DEPLOYMENT_GUIDE.md
+*DEPLOYMENT*.md
+deployment-guide*
+CLAUDE.md
+PROJECT_STRUCTURE.md
+PRIVATE
+
 # Extra folders
