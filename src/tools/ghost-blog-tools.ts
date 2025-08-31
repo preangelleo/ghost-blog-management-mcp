@@ -431,7 +431,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const post = result.data;
+			const post = result.data?.post || result.data;
 			
 			// Validate post data
 			if (!post || typeof post !== 'object') {
@@ -450,7 +450,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			const status = post.status || 'unknown';
 			const featured = post.featured ? ' ⭐ Featured' : '';
 			const url = post.url || 'Not available';
-			const tags = Array.isArray(post.tags) ? post.tags.join(', ') : (post.tags || 'None');
+			const tags = Array.isArray(post.tags) ? post.tags.map(tag => tag.name || tag).join(', ') : (post.tags || 'None');
 			const created_at = post.created_at || 'Unknown';
 			const updated_at = post.updated_at || 'Unknown';
 			const published_at = post.published_at || 'Not published';
