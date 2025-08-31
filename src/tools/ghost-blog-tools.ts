@@ -489,7 +489,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 			const status = post.status || 'unknown';
 			const featured = post.featured ? ' ⭐ Featured' : '';
 			const url = post.url || 'Not available';
-			const tags = Array.isArray(post.tags) ? post.tags.map(tag => tag.name || tag).join(', ') : (post.tags || 'None');
+			const tags = Array.isArray(post.tags) ? post.tags.map((tag: any) => tag.name || tag).join(', ') : (post.tags || 'None');
 			const created_at = post.created_at || 'Unknown';
 			const updated_at = post.updated_at || 'Unknown';
 			const published_at = post.published_at || 'Not published';
@@ -646,10 +646,12 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				ghost_api_url
 			} : undefined;
 			
+			// FIX: Get actual posts and calculate statistics ourselves since the summary API may not be working correctly
 			const queryParams = new URLSearchParams();
-			queryParams.append('days', days.toString());
+			queryParams.append('limit', '100'); // Get up to 100 posts to calculate statistics
+			queryParams.append('status', 'all');
 
-			const result = await callGhostBlogApi(`/api/posts/summary?${queryParams.toString()}`, 'GET', undefined, 30000, env, customCredentials);
+			const result = await callGhostBlogApi(`/api/posts?${queryParams.toString()}`, 'GET', undefined, 30000, env, customCredentials);
 			
 			if (!result.success) {
 				return {
@@ -661,11 +663,43 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			const summary = result.data;
+			// Calculate statistics from actual post data
+			const posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
+			const total_posts = posts.length;
+			const published = posts.filter((p: any) => p.status === 'published').length;
+			const drafts = posts.filter((p: any) => p.status === 'draft').length;
+			const featured = posts.filter((p: any) => p.featured === true).length;
+			
+			// Calculate recent activity (posts within the specified days)
+			const cutoffDate = new Date();
+			cutoffDate.setDate(cutoffDate.getDate() - days);
+			
+			const recent_created = posts.filter((p: any) => new Date(p.created_at) >= cutoffDate).length;
+			const recent_updated = posts.filter((p: any) => new Date(p.updated_at) >= cutoffDate && new Date(p.updated_at) > new Date(p.created_at)).length;
+			const recent_published = posts.filter((p: any) => p.published_at && new Date(p.published_at) >= cutoffDate).length;
+			
+			// Calculate top tags
+			const tagCounts: Record<string, number> = {};
+			posts.forEach((post: any) => {
+				if (post.tags && Array.isArray(post.tags)) {
+					post.tags.forEach((tag: any) => {
+						const tagName = typeof tag === 'string' ? tag : tag.name;
+						if (tagName) {
+							tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
+						}
+					});
+				}
+			});
+			
+			const top_tags = Object.entries(tagCounts)
+				.sort(([,a], [,b]) => b - a)
+				.slice(0, 5)
+				.map(([name, count]) => ({ name, count }));
+
 			return {
 				content: [{
 					type: "text",
-					text: `**Blog Posts Summary (Last ${params.days} Days)**\n\n**Total Posts:** ${summary.total_posts || 0}\n**Published:** ${summary.published || 0}\n**Drafts:** ${summary.drafts || 0}\n**Featured:** ${summary.featured || 0}\n\n**Recent Activity:**\n• Posts created: ${summary.recent_created || 0}\n• Posts updated: ${summary.recent_updated || 0}\n• Posts published: ${summary.recent_published || 0}\n\n**Top Tags:**\n${summary.top_tags ? summary.top_tags.map((tag: any) => `• ${tag.name} (${tag.count} posts)`).join('\n') : 'No tags found'}\n\n**Analysis Period:** Last ${params.days} days\n**Generated:** ${new Date().toISOString()}`
+					text: `**Blog Posts Summary (Last ${params.days} Days)**\n\n**Total Posts:** ${total_posts}\n**Published:** ${published}\n**Drafts:** ${drafts}\n**Featured:** ${featured}\n\n**Recent Activity:**\n• Posts created: ${recent_created}\n• Posts updated: ${recent_updated}\n• Posts published: ${recent_published}\n\n**Top Tags:**\n${top_tags.length > 0 ? top_tags.map((tag: any) => `• ${tag.name} (${tag.count} posts)`).join('\n') : 'No tags found'}\n\n**Analysis Period:** Last ${params.days} days\n**Generated:** ${new Date().toISOString()}`
 				}]
 			};
 		}
@@ -699,18 +733,35 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 				};
 			}
 
-			// Critical fix for ghost_batch_get_details JavaScript runtime error
-			let posts;
+			// FIX: Handle the API response format correctly - posts are returned as an object with post IDs as keys
+			let posts: any[] = [];
 			try {
-				posts = Array.isArray(result.data) ? result.data : (result.data?.posts || []);
+				// The API returns {posts: {postId1: {...}, postId2: {...}}} format
+				const postsData = result.data?.posts;
 				
-				// Type validation - ensure posts is an array before calling .map()
-				if (!Array.isArray(posts)) {
-					console.error('Batch get details: posts is not an array:', typeof posts, posts);
+				if (!postsData) {
 					return {
 						content: [{
 							type: "text",
-							text: `**Invalid API response format**\n\nExpected array of posts, got: ${typeof posts}\n\nRaw response: ${JSON.stringify(result.data)}`,
+							text: `**No posts data in response**\n\nAPI response missing 'posts' field. Raw response: ${JSON.stringify(result.data)}`,
+							isError: true
+						}]
+					};
+				}
+				
+				// Convert posts object to array - posts are keyed by their IDs
+				if (typeof postsData === 'object' && !Array.isArray(postsData)) {
+					posts = Object.values(postsData);
+					console.log(`Batch get details: converted object with ${posts.length} posts to array`);
+				} else if (Array.isArray(postsData)) {
+					posts = postsData;
+					console.log(`Batch get details: received array with ${posts.length} posts`);
+				} else {
+					console.error('Batch get details: unexpected posts data format:', typeof postsData, postsData);
+					return {
+						content: [{
+							type: "text",
+							text: `**Invalid posts data format**\n\nExpected object or array, got: ${typeof postsData}\n\nRaw response: ${JSON.stringify(result.data)}`,
 							isError: true
 						}]
 					};
@@ -720,7 +771,7 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 					return {
 						content: [{
 							type: "text",
-							text: `**No posts found**\n\nThe provided post IDs may be invalid or deleted.`
+							text: `**No posts found**\n\nThe provided post IDs may be invalid or deleted. Requested: [${post_ids.join(', ')}]`
 						}]
 					};
 				}
@@ -737,7 +788,12 @@ export function registerGhostBlogTools(server: McpServer, env: Env, props: Props
 
 			const postDetails = posts.map((post: any) => {
 				const tags = post.tags?.map((tag: any) => typeof tag === 'string' ? tag : tag.name).join(', ') || 'None';
-				return `**${post.title}**\nID: ${post.id}\nStatus: ${post.status}${post.featured ? ' ⭐' : ''}\nTags: ${tags}\nURL: ${post.url || 'Not available'}`;
+				const title = post.title || 'Untitled';
+				const id = post.id || 'Unknown ID';
+				const status = post.status || 'unknown';
+				const featured = post.featured ? ' ⭐' : '';
+				const url = post.url || 'Not available';
+				return `**${title}**\nID: ${id}\nStatus: ${status}${featured}\nTags: ${tags}\nURL: ${url}`;
 			}).join('\n\n---\n\n');
 
 			return {
